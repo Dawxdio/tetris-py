@@ -1,7 +1,41 @@
 from time import sleep
 from msvcrt import getch
 
+
+def generate():
+    return
+
+
+def rotate():
+    return
+
+
+def move():
+    return
+
+
+def drop():
+    return
+
+
+def keep():
+    return
+
+
+def reset():
+    return
+
+
+state = [[" " for _ in range(10)] for _ in range(20)]
+
 while True:
+    print(" - - - - - - - - - - ")
+    for i in range(20):
+        print("|", end="")
+        for j in range(10):
+            print(state[i][j], end=" ")
+        print("|")
+    print(" - - - - - - - - - - ")
     keycode = ord(getch())
     if keycode == 72:  # Up arrow
         print("rotate right")
@@ -17,7 +51,6 @@ while True:
         print("reset")
     elif keycode == 32:  # Space
         print("instant drop")
-    print(keycode)
 #
 # def clear():
 #     if name == 'nt':
