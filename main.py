@@ -72,15 +72,21 @@ state = [[" " for _ in range(10)] for _ in range(21)]
 current_piece = generate()
 piece_coordinates = pieces[current_piece]
 stored_piece = ""
+resolution = 1
 while True:
-    print("-----------------------")
+    print("_"*(resolution*10+13))
     for i in range(1, 21):
-        print("||", end="")
-        for j in range(9):
-            print(state[i][j], end=",")
-        print(state[i][9], end="")
-        print("||")
-    print("-----------------------")
+        for m in range(resolution):
+            print("||", end="")
+            for j in range(9):
+                if m%resolution==0:
+                    print(state[i][j]*resolution, end=",")
+                else:
+                    print(state[i][j]*resolution, end=" ")
+            print(state[i][9]*resolution, end="")
+            print("||")
+    print("̅"*(resolution*10+13))
+    
     keycode = ord(getch())  # get keyboard input
     if keycode == 72:  # Up arrow
         print("rotate right")
