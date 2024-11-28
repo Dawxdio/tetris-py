@@ -18,16 +18,32 @@ def rotate():
     return
 
 
-def move(val, cords, st):
+def move_side(val, cords, st):
     for k in cords:
-        st[k[0]][k[1]] = " "
+        st[k[0]][k[1]] = " "  # clear previous placement
     return [[k[0], k[1]+val] for k in cords], st
 
 
-def drop(cords, st):
+def move_down(cords, st):
+    for k in cords:
+        st[k[0]][k[1]] = " "  # clear previous placement
+    return [[k[0]+1, k[1]] for k in cords], st
+
+
+def drop(cords, st):  # placeholder
+    for k in cords:
+        st[k[0]][k[1]] = " "  # clear previous placement
+    diff = 20 - max([k[0] for k in cords])
+    return [[k[0] + diff, k[1]] for k in cords], st
+
+
+def store(cords, st, stored, cur):
     for k in cords:
         st[k[0]][k[1]] = " "
-    return [[k[0]+1, k[1]] for k in cords], st
+    if stored == "":
+        new = generate()
+        return pieces[new], new, cur
+    return pieces[stored], stored, cur
 
 
 def reset():
@@ -50,44 +66,13 @@ pieces = {
     "T": [[0, 5], [1, 4], [1, 5], [1, 6]],
     "|": [[1, 3], [1, 4], [1, 5], [1, 6]]
 }
-# TODO: change coordinate order (y,x) => (x,y)
+
 state = [[" " for _ in range(10)] for _ in range(21)]
 
 current_piece = generate()
 piece_coordinates = pieces[current_piece]
-store = []
+stored_piece = ""
 while True:
-    keycode = ord(getch())  # fetch keyboard input
-    if keycode == 72:  # Up arrow
-        print("rotate right")
-    elif keycode == 75:  # Left arrow
-        # check if x coordinate after move would be out of range
-        if 0 not in [i[1] for i in piece_coordinates]:
-            piece_coordinates, state = move(-1, piece_coordinates, state)
-    elif keycode == 77:  # Right arrow
-        # check if x coordinate after move would be out of range
-        if 9 not in [i[1] for i in piece_coordinates]:
-            piece_coordinates, state = move(1, piece_coordinates, state)
-    elif keycode == 80:  # Down arrow
-        try:
-            piece_coordinates, state = drop(piece_coordinates, state)
-        except IndexError:
-            continue
-    elif keycode == 99:  # "c"
-        temp = current_piece
-        if store:
-            current_piece = store
-            refresh(pieces[store])
-        else:
-            current_piece = generate()
-        store = temp
-
-    elif keycode == 114:  # "r"
-        print("reset")
-    elif keycode == 32:  # Space
-        print("instant drop")
-
-    refresh(piece_coordinates)
     print("-----------------------")
     for i in range(1, 21):
         print("||", end="")
@@ -96,3 +81,34 @@ while True:
         print(state[i][9], end="")
         print("||")
     print("-----------------------")
+    keycode = ord(getch())  # get keyboard input
+    if keycode == 72:  # Up arrow
+        print("rotate right")
+    elif keycode == 75:  # Left arrow
+        # check if horizontal coordinate after move would be out of range
+        if 0 not in [i[1] for i in piece_coordinates]:
+            piece_coordinates, state = move_side(-1, piece_coordinates, state)
+    elif keycode == 77:  # Right arrow
+        # check if horizontal coordinate after move would be out of range
+        if 9 not in [i[1] for i in piece_coordinates]:
+            piece_coordinates, state = move_side(1, piece_coordinates, state)
+    elif keycode == 80:  # Down arrow
+        # check if vertical coordinate after move would be out of range
+        if 20 not in [i[0] for i in piece_coordinates]:
+            piece_coordinates, state = move_down(piece_coordinates, state)
+    elif keycode == 99:  # "c"  TODO: fix
+        piece_coordinates, current_piece, stored_piece = store(piece_coordinates, state, stored_piece, current_piece)
+        # temp = current_piece
+        # if store == "":
+        #     current_piece = generate()
+        # else:
+        #     current_piece = store
+        #     piece_coordinates = pieces[store]
+        # store = temp
+
+    elif keycode == 114:  # "r"
+        print("reset")
+    elif keycode == 32:  # Space
+        piece_coordinates, state = drop(piece_coordinates, state)
+    clear()
+    refresh(piece_coordinates)
