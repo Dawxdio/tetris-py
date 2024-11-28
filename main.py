@@ -96,15 +96,8 @@ while True:
         # check if vertical coordinate after move would be out of range
         if 20 not in [i[0] for i in piece_coordinates]:
             piece_coordinates, state = move_down(piece_coordinates, state)
-    elif keycode == 99:  # "c"  TODO: fix
+    elif keycode == 99:  # "c"
         piece_coordinates, current_piece, stored_piece = store(piece_coordinates, state, stored_piece, current_piece)
-        # temp = current_piece
-        # if store == "":
-        #     current_piece = generate()
-        # else:
-        #     current_piece = store
-        #     piece_coordinates = pieces[store]
-        # store = temp
 
     elif keycode == 114:  # "r"
         print("reset")
