@@ -1,16 +1,17 @@
 from os import name, system
+from time import sleep
 from random import choice
 
 if name == 'nt':  # windows
     from msvcrt import getch, kbhit
-elif name == 'unix':  # linux
-    import termios, fcntl, sys
+# elif name == 'unix':  # linux
+    # import termios, fcntl, sys
 else:
     print("Unsupported Operating System")
 
+
 def generate():
     return choice(list(default_coordinates.keys()))
-
 
 
 def ignore_inner(val, coordinates: list):
@@ -35,7 +36,7 @@ def ignore_inner(val, coordinates: list):
 def collision_down(coordinates):
     coordinates = ignore_inner(0, coordinates)
     for k in coordinates:
-        if k[0] == 20 or state[k[0]+1][k[1]] == "@":
+        if k[0] == 20 or state[k[0] + 1][k[1]] == "@":
             return True
     return False
 
@@ -43,7 +44,7 @@ def collision_down(coordinates):
 def collision_side(val, coordinates):
     coordinates = ignore_inner(val, coordinates)
     for k in coordinates:
-        if state[k[0]][k[1]+val] == "@":
+        if state[k[0]][k[1] + val] == "@":
             return True
     return False
 
@@ -59,12 +60,12 @@ def refresh(coordinates, func):
 
 def move_side(val, coordinates):
     if not collision_side(val, coordinates):
-        coordinates = [[k[0], k[1]+val] for k in coordinates]
+        coordinates = [[k[0], k[1] + val] for k in coordinates]
     return coordinates
 
 
 def move_down(coordinates):
-    return [[k[0]+1, k[1]] for k in coordinates]
+    return [[k[0] + 1, k[1]] for k in coordinates]
 
 
 def drop(coordinates):
@@ -78,7 +79,7 @@ def store(coordinates, stored, cur):
         state[k[0]][k[1]] = " "
     if stored == "":
         new = generate()
-        return default_coordinates[new], cur, new, 
+        return default_coordinates[new], cur, new,
     return default_coordinates[stored], cur, stored
 
 
@@ -93,28 +94,41 @@ def rotate(coordinates, cur, rot):
     for k in coordinates:
         state[k[0]][k[1]] = " "
     if 0 in [i[0] for i in coordinates]:  # prevent rotating into ceiling
-        coordinates = [[k[0]+1, k[1]] for k in coordinates]
+        coordinates = [[k[0] + 1, k[1]] for k in coordinates]
     elif 20 in [i[0] for i in coordinates]:  # prevent rotating into floor
-        coordinates = [[k[0]-1, k[1]] for k in coordinates]
+        coordinates = [[k[0] - 1, k[1]] for k in coordinates]
     if 0 in [i[1] for i in coordinates]:  # prevent rotating into left wall
-        coordinates = [[k[0], k[1]+1] for k in coordinates]
+        coordinates = [[k[0], k[1] + 1] for k in coordinates]
     elif 9 in [i[1] for i in coordinates]:  # prevent rotating into right wall
-        coordinates = [[k[0], k[1]-1] for k in coordinates]
-    coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0], coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
+        coordinates = [[k[0], k[1] - 1] for k in coordinates]
+    coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0],
+                    coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
     for k in coordinates:
         state[k[0]][k[1]] = "@"
-    return coordinates, (rot+1)%4  # keep rotation_state within <0,3>
+    return coordinates, (rot + 1) % 4  # keep rotation_state within <0,3>
 
 
 default_coordinates = {
-    "Z":         [[0, 3], [0, 4], [1, 4], [1, 5]],
+    "Z": [[0, 3], [0, 4], [1, 4], [1, 5]],
     "Z_reverse": [[0, 4], [0, 5], [1, 3], [1, 4]],
-    "L":         [[0, 5], [1, 3], [1, 4], [1, 5]],
+    "L": [[0, 5], [1, 3], [1, 4], [1, 5]],
     "L_reverse": [[0, 3], [1, 3], [1, 4], [1, 5]],
-    "Square":    [[0, 4], [0, 5], [1, 4], [1, 5]],
-    "T":         [[0, 5], [1, 4], [1, 5], [1, 6]],
-    "|":         [[1, 3], [1, 4], [1, 5], [1, 6]]
+    "Square": [[0, 4], [0, 5], [1, 4], [1, 5]],
+    "T": [[0, 5], [1, 4], [1, 5], [1, 6]],
+    "|": [[1, 3], [1, 4], [1, 5], [1, 6]]
 }
+
+
+piece_colors = {
+    "Z": '\033[91m',
+    "Z_reverse": '\033[92m',
+    "L": '\033[93m',
+    "L_reverse": '\033[94m',
+    "Square": '\033[33m',
+    "T": '\033[95m',
+    "|": '\033[96m'
+}
+
 
 rotation_table = {
     "Z":
@@ -207,16 +221,16 @@ while True:
                         break
                 else:
                     break
-        clear()
-        print("_"*(resolution*10+13))
+        print("_" * (resolution * 10 + 13))
         for i in range(1, 21):
             for m in range(resolution):
                 print("||", end="")
                 for j in range(9):
-                    if m%resolution==resolution-1:
-                        print(state[i][j]*resolution, end=",")
+                    if m % resolution == resolution - 1:
+                        print(state[i][j] * resolution, end=',')
                     else:
-                        print(state[i][j]*resolution, end=" ")
-                print(state[i][9]*resolution, end="")
+                        print(state[i][j] * resolution, end=" ")
+                print(state[i][9] * resolution, end="")
                 print("||")
-        print("̅"*(resolution*10+13))
+        print("̅" * (resolution * 10 + 13))
+        clear()
