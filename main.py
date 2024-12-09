@@ -1,4 +1,5 @@
 from os import name, system
+from sys import platform
 from time import sleep
 from random import choice
 
@@ -10,10 +11,8 @@ else:
     print("Unsupported Operating System")
 
 
-def generate():
-    return choice(list(default_coordinates.keys()))
-
-
+#-----------------------------------------------------
+# CHECKS
 
 def ignore_inner(val, coordinates: list):
     if val == 0:
@@ -49,14 +48,55 @@ def collision_side(val, coordinates):
             return True
     return False
 
-esc = "\033[0m"
+
+#-----------------------------------------------------
+# PRINT
+
+def clear():
+    if name == 'nt':
+        system('cls')
+    else:
+        system('clear')
+
 
 def refresh(coordinates, func, cur):
+    esc = "\033[0m"
+    preview = "\033[38;5;244m\033[48;5;244m"
     for k in coordinates:
         state[k[0]][k[1]] = " "  # clear previous coordinates
     coordinates = func
+    preview_coordinates = drop(coordinates)
+    for k in preview_coordinates:
+        state[k[0]][k[1]] = f"{preview}#{esc}"  # draw preview
     for k in coordinates:
         state[k[0]][k[1]] = f"{piece_colors[cur]}@{esc}"  # draw new piece
+    clear()
+    print("_" * 23)
+    for i in range(1, 21):
+        print("||", end="")
+        for j in range(10):
+            print(state[i][j] *2, end="")
+        print("||")
+    print("̅" * 23)
+    if preview_coordinates != coordinates:
+        for k in preview_coordinates:
+            state[k[0]][k[1]] = " "
+    return coordinates
+
+#-----------------------------------------------------
+# MOVEMENT
+
+def rotate(coordinates, cur, rot):
+    if 0 in [i[0] for i in coordinates]:  # prevent rotating into ceiling
+        coordinates = [[k[0] + 1, k[1]] for k in coordinates]
+    elif 20 in [i[0] for i in coordinates]:  # prevent rotating into floor
+        coordinates = [[k[0] - 1, k[1]] for k in coordinates]
+    if 0 in [i[1] for i in coordinates]:  # prevent rotating into left wall
+        coordinates = [[k[0], k[1] + 1] for k in coordinates]
+    elif 9 in [i[1] for i in coordinates]:  # prevent rotating into right wall
+        coordinates = [[k[0], k[1] - 1] for k in coordinates]
+    coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0],
+                    coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
     return coordinates
 
 
@@ -75,6 +115,8 @@ def drop(coordinates):
         coordinates = [[k[0] + 1, k[1]] for k in coordinates]
     return coordinates
 
+#-----------------------------------------------------
+# OTHER
 
 def store(coordinates, stored, cur):
     for k in coordinates:
@@ -85,30 +127,11 @@ def store(coordinates, stored, cur):
     return default_coordinates[stored], cur, stored
 
 
-def clear():
-    if name == 'nt':
-        system('cls')
-    else:
-        system('clear')
+def generate():
+    return choice(list(default_coordinates.keys()))
 
-
-def rotate(coordinates, cur, rot):
-    for k in coordinates:
-        state[k[0]][k[1]] = " "
-    if 0 in [i[0] for i in coordinates]:  # prevent rotating into ceiling
-        coordinates = [[k[0] + 1, k[1]] for k in coordinates]
-    elif 20 in [i[0] for i in coordinates]:  # prevent rotating into floor
-        coordinates = [[k[0] - 1, k[1]] for k in coordinates]
-    if 0 in [i[1] for i in coordinates]:  # prevent rotating into left wall
-        coordinates = [[k[0], k[1] + 1] for k in coordinates]
-    elif 9 in [i[1] for i in coordinates]:  # prevent rotating into right wall
-        coordinates = [[k[0], k[1] - 1] for k in coordinates]
-    coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0],
-                    coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
-    for k in coordinates:
-        state[k[0]][k[1]] = f"{piece_colors[cur]}@{esc}"
-    return coordinates, (rot + 1) % 4  # keep rotation_state within <0,3>
-
+#-----------------------------------------------------
+# BLOCK DATA
 
 default_coordinates = {
     "Z": [[0, 3], [0, 4], [1, 4], [1, 5]],
@@ -120,13 +143,12 @@ default_coordinates = {
     "|": [[1, 3], [1, 4], [1, 5], [1, 6]]
 }
 
-
 piece_colors = {
     "Z": '\033[91;101m',
     "Z_reverse": '\033[92;102m',
-    "L": '\033[93;103m',
-    "L_reverse": '\033[94;104m',
-    "Square": '\033[33;43m',
+    "L": '\033[94;104m',
+    "L_reverse": '\033[2;33;43m',
+    "Square": '\033[93;103m',
     "T": '\033[95;105m',
     "|": '\033[96;106m'
 }
@@ -180,61 +202,56 @@ rotation_table = {
 state = [[" " for _ in range(10)] for _ in range(21)]
 stored_piece = ""
 
-while True:
-    current_piece = generate()
-    piece_coordinates = default_coordinates[current_piece]
-    rotation_state = 0
-    resolution = 1
-    clock = 0
+#-----------------------------------------------------
+# DRIVER CODE
+def main():
     while True:
-        clock += 0.01
-        if kbhit():  # check if there is keyboard input
-            keycode = ord(getch())  # get keyboard input
-            if keycode == 72 and current_piece != "Square":  # Up arrow
-                piece_coordinates, rotation_state = rotate(piece_coordinates, current_piece, rotation_state)
-            elif keycode == 75:  # Left arrow
-                if 0 not in [i[1] for i in piece_coordinates]:  # check if coordinate after move would be out of range
-                    piece_coordinates = refresh(piece_coordinates, move_side(-1, piece_coordinates), current_piece)
-            elif keycode == 77:  # Right arrow
-                if 9 not in [i[1] for i in piece_coordinates]:
-                    piece_coordinates = refresh(piece_coordinates, move_side(1, piece_coordinates), current_piece)
-            elif keycode == 80:  # Down arrow
-                if 20 not in [i[0] for i in piece_coordinates]:
-                    if not collision_down(piece_coordinates):
-                        piece_coordinates = refresh(piece_coordinates, move_down(piece_coordinates), current_piece)
+        current_piece = generate()
+        piece_coordinates = default_coordinates[current_piece]
+        rotation_state = 0
+        clock = 0
+        while True:
+            y_coords = [i[0] for i in piece_coordinates]
+            x_coords = [i[1] for i in piece_coordinates]
+            clock += 0.01
+            if kbhit():  # check if there is keyboard input
+                keycode = ord(getch())  # get keyboard input
+                if keycode == 72 and current_piece != "Square":  # Up arrow
+                    piece_coordinates = refresh(piece_coordinates, rotate(piece_coordinates, current_piece, rotation_state), current_piece)
+                    rotation_state = (rotation_state + 1) % 4
+                elif keycode == 75:  # Left arrow
+                    if 0 not in x_coords:  # check if coordinate after move would be out of range
+                        piece_coordinates = refresh(piece_coordinates, move_side(-1, piece_coordinates), current_piece)
+                elif keycode == 77:  # Right arrow
+                    if 9 not in x_coords:
+                        piece_coordinates = refresh(piece_coordinates, move_side(1, piece_coordinates), current_piece)
+                elif keycode == 80:  # Down arrow
+                    if 20 not in y_coords:
+                        if not collision_down(piece_coordinates):
+                            piece_coordinates = refresh(piece_coordinates, move_down(piece_coordinates), current_piece)
+                        else:
+                            break
                     else:
                         break
-                else:
+                elif keycode == 99:  # "c"
+                    piece_coordinates, stored_piece, current_piece = store(piece_coordinates, stored_piece, current_piece)
+                elif keycode == 114:  # "r"
                     break
-            elif keycode == 99:  # "c"
-                piece_coordinates, stored_piece, current_piece = store(piece_coordinates, stored_piece, current_piece)
-            elif keycode == 114:  # "r"
-                break
-            elif keycode == 32:  # Space
-                piece_coordinates = refresh(piece_coordinates, drop(piece_coordinates), current_piece)
-                break
-        else:
-            if int(clock) == 1:
-                if 20 not in [i[0] for i in piece_coordinates]:
-                    if not collision_down(piece_coordinates):
-                        clock = 0
-                        piece_coordinates = refresh(piece_coordinates, move_down(piece_coordinates), current_piece)
+                elif keycode == 32:  # Space
+                    piece_coordinates = refresh(piece_coordinates, drop(piece_coordinates), current_piece)
+                    break
+            else:
+                sleep(0.01)
+                if int(clock) == 1:
+                    if 20 not in x_coords:
+                        if not collision_down(piece_coordinates):
+                            clock = 0
+                            piece_coordinates = refresh(piece_coordinates, move_down(piece_coordinates), current_piece)
+                        else:
+                            break
                     else:
                         break
-                else:
-                    break
-        clear()
-        print("_" * (resolution * 10 + 13))
-        for i in range(1, 21):
-            for m in range(resolution):
-                print("||", end="")
-                for j in range(9):
-                    if m % resolution == resolution - 1:
-                        print(state[i][j] *2* resolution, end='')
-                    else:
-                        print(state[i][j] *2* resolution, end="")
-                print(state[i][9] *2* resolution, end="")
-                print("||")
-        print("̅" * (resolution * 10 + 13))
-
         
+        
+if __name__ == "__main__":
+    main()

@@ -1,1 +1,1 @@
-print("\033[95m"+"aaaaaaaa")
+import curses as cl
