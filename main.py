@@ -1,7 +1,7 @@
 from os import name, system
-from sys import platform
 from time import sleep
 from random import choice
+from re import search
 
 if name == 'nt':  # windows
     from msvcrt import getch, kbhit
@@ -14,37 +14,16 @@ else:
 #-----------------------------------------------------
 # CHECKS
 
-def ignore_inner(val, coordinates: list):
-    if val == 0:
-        x_set = set()
-        for k in coordinates:
-            x_set.add(k[1])
-        coordinates = [max([m for m in coordinates if m[1] == k]) for k in x_set]
-    elif val == 1:
-        y_set = set()
-        for k in coordinates:
-            y_set.add(k[0])
-        coordinates = [max([m for m in coordinates if m[0] == k]) for k in y_set]
-    elif val == -1:
-        y_set = set()
-        for k in coordinates:
-            y_set.add(k[0])
-        coordinates = [min([m for m in coordinates if m[0] == k]) for k in y_set]
-    return coordinates
-
-
 def collision_down(coordinates):
-    coordinates = ignore_inner(0, coordinates)
     for k in coordinates:
-        if k[0] == 20 or state[k[0] + 1][k[1]] != " ":
+        if k[0] == 20 or search(r".+#.+", state[k[0] + 1][k[1]]):
             return True
     return False
 
 
 def collision_side(val, coordinates):
-    coordinates = ignore_inner(val, coordinates)
     for k in coordinates:
-        if state[k[0]][k[1] + val] != " ":
+        if search(r".+#.+", state[k[0]][k[1] + val]):
             return True
     return False
 
@@ -60,16 +39,15 @@ def clear():
 
 
 def refresh(coordinates, func, cur):
-    esc = "\033[0m"
     preview = "\033[38;5;244m\033[48;5;244m"
     for k in coordinates:
         state[k[0]][k[1]] = " "  # clear previous coordinates
     coordinates = func
     preview_coordinates = drop(coordinates)
     for k in preview_coordinates:
-        state[k[0]][k[1]] = f"{preview}#{esc}"  # draw preview
+        state[k[0]][k[1]] = f"{preview}$\033[0m"  # draw preview
     for k in coordinates:
-        state[k[0]][k[1]] = f"{piece_colors[cur]}@{esc}"  # draw new piece
+        state[k[0]][k[1]] = f"{piece_colors[cur]}@\033[0m"  # draw new piece
     clear()
     print("_" * 23)
     for i in range(1, 21):
@@ -83,21 +61,39 @@ def refresh(coordinates, func, cur):
             state[k[0]][k[1]] = " "
     return coordinates
 
+
+def set_down(coordinates, cur):
+    for k in coordinates:
+        state[k[0]][k[1]] = f"{piece_colors[cur]}#\033[0m"
+    return
+
 #-----------------------------------------------------
 # MOVEMENT
 
 def rotate(coordinates, cur, rot):
-    if 0 in [i[0] for i in coordinates]:  # prevent rotating into ceiling
+    old_coordinates = coordinates
+    y_coordinates = [i[0] for i in coordinates]
+    x_coordinates = [i[1] for i in coordinates]
+    if 0 in y_coordinates:  # prevent rotating into ceiling
         coordinates = [[k[0] + 1, k[1]] for k in coordinates]
-    elif 20 in [i[0] for i in coordinates]:  # prevent rotating into floor
+    elif 20 in y_coordinates:  # prevent rotating into floor
         coordinates = [[k[0] - 1, k[1]] for k in coordinates]
-    if 0 in [i[1] for i in coordinates]:  # prevent rotating into left wall
+    if cur == "|" and rot == 3:
+        if 0 in x_coordinates or 1 in x_coordinates:
+            coordinates = [[k[0], k[1] + 2] for k in coordinates]
+    elif 0 in x_coordinates:  # prevent rotating into left wall
         coordinates = [[k[0], k[1] + 1] for k in coordinates]
-    elif 9 in [i[1] for i in coordinates]:  # prevent rotating into right wall
+    if cur == "|" and rot == 1:
+        if 9 in x_coordinates or 8 in x_coordinates:
+            coordinates = [[k[0], k[1] - 2] for k in coordinates]
+    elif 9 in x_coordinates:  # prevent rotating into right wall
         coordinates = [[k[0], k[1] - 1] for k in coordinates]
-    coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0],
-                    coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
-    return coordinates
+    new_coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0],
+                        coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
+    for k in new_coordinates:
+        if search(r".+#.+", state[k[0]][k[1]]):
+            return old_coordinates
+    return new_coordinates
 
 
 def move_side(val, coordinates):
@@ -123,12 +119,17 @@ def store(coordinates, stored, cur):
         state[k[0]][k[1]] = " "
     if stored == "":
         new = generate()
-        return default_coordinates[new], cur, new,
+        return default_coordinates[new], cur, new
     return default_coordinates[stored], cur, stored
 
 
 def generate():
     return choice(list(default_coordinates.keys()))
+
+
+def do_nothing(coordinates):
+    return coordinates
+
 
 #-----------------------------------------------------
 # BLOCK DATA
@@ -147,7 +148,7 @@ piece_colors = {
     "Z": '\033[91;101m',
     "Z_reverse": '\033[92;102m',
     "L": '\033[94;104m',
-    "L_reverse": '\033[2;33;43m',
+    "L_reverse": '\033[38;5;202m\033[48;5;202m',
     "Square": '\033[93;103m',
     "T": '\033[95;105m',
     "|": '\033[96;106m'
@@ -200,25 +201,28 @@ rotation_table = {
 }
 
 state = [[" " for _ in range(10)] for _ in range(21)]
-stored_piece = ""
+
 
 #-----------------------------------------------------
 # DRIVER CODE
+
 def main():
+    stored_piece = ""
     while True:
         current_piece = generate()
         piece_coordinates = default_coordinates[current_piece]
-        rotation_state = 0
         clock = 0
+        rotation_state = 0
         while True:
-            y_coords = [i[0] for i in piece_coordinates]
             x_coords = [i[1] for i in piece_coordinates]
             clock += 0.01
             if kbhit():  # check if there is keyboard input
                 keycode = ord(getch())  # get keyboard input
                 if keycode == 72 and current_piece != "Square":  # Up arrow
-                    piece_coordinates = refresh(piece_coordinates, rotate(piece_coordinates, current_piece, rotation_state), current_piece)
-                    rotation_state = (rotation_state + 1) % 4
+                    rotation_success = (piece_coordinates != rotate(piece_coordinates, current_piece, rotation_state))
+                    if rotation_success:
+                        piece_coordinates = refresh(piece_coordinates, rotate(piece_coordinates, current_piece, rotation_state), current_piece)
+                        rotation_state = (rotation_state + 1) % 4
                 elif keycode == 75:  # Left arrow
                     if 0 not in x_coords:  # check if coordinate after move would be out of range
                         piece_coordinates = refresh(piece_coordinates, move_side(-1, piece_coordinates), current_piece)
@@ -226,30 +230,29 @@ def main():
                     if 9 not in x_coords:
                         piece_coordinates = refresh(piece_coordinates, move_side(1, piece_coordinates), current_piece)
                 elif keycode == 80:  # Down arrow
-                    if 20 not in y_coords:
-                        if not collision_down(piece_coordinates):
-                            piece_coordinates = refresh(piece_coordinates, move_down(piece_coordinates), current_piece)
-                        else:
-                            break
+                    if not collision_down(piece_coordinates):
+                        piece_coordinates = refresh(piece_coordinates, move_down(piece_coordinates), current_piece)
                     else:
+                        set_down(piece_coordinates, current_piece)
                         break
                 elif keycode == 99:  # "c"
                     piece_coordinates, stored_piece, current_piece = store(piece_coordinates, stored_piece, current_piece)
+                    rotation_state = 0
+                    refresh(piece_coordinates, do_nothing(piece_coordinates), current_piece)
                 elif keycode == 114:  # "r"
                     break
                 elif keycode == 32:  # Space
                     piece_coordinates = refresh(piece_coordinates, drop(piece_coordinates), current_piece)
+                    set_down(piece_coordinates, current_piece)
                     break
             else:
                 sleep(0.01)
                 if int(clock) == 1:
-                    if 20 not in x_coords:
-                        if not collision_down(piece_coordinates):
-                            clock = 0
-                            piece_coordinates = refresh(piece_coordinates, move_down(piece_coordinates), current_piece)
-                        else:
-                            break
+                    if not collision_down(piece_coordinates):
+                        clock = 0
+                        piece_coordinates = refresh(piece_coordinates, move_down(piece_coordinates), current_piece)
                     else:
+                        set_down(piece_coordinates, current_piece)
                         break
         
         
