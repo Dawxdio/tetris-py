@@ -10,16 +10,16 @@ if name == 'nt':  # windows
 # -----------------------------------------------------
 # CHECKS
 
-def collision_down(coordinates):
+def collision_down(coordinates, st):
     for k in coordinates:
-        if k[0] == 20 or search(r".+#.+", state[k[0] + 1][k[1]]):
+        if k[0] == 20 or search(r".+#.+", st[k[0] + 1][k[1]]):
             return True
     return False
 
 
-def collision_side(val, coordinates):
+def collision_side(val, coordinates, st):
     for k in coordinates:
-        if search(r".+#.+", state[k[0]][k[1] + val]):
+        if search(r".+#.+", st[k[0]][k[1] + val]):
             return True
     return False
 
@@ -34,40 +34,57 @@ def clear():
         system('clear')
 
 
-def refresh(coordinates, func, cur):
-    preview = "\033[38;5;244m\033[48;5;244m"
-    for k in coordinates:
-        state[k[0]][k[1]] = " "  # clear previous coordinates
-    coordinates = func
-    preview_coordinates = drop(coordinates)
-    for k in preview_coordinates:
-        state[k[0]][k[1]] = f"{preview}$\033[0m"  # draw preview
-    for k in coordinates:
-        state[k[0]][k[1]] = f"{piece_colors[cur]}@\033[0m"  # draw new piece
+def draw(st):
     clear()
     print("_" * 23)
     for i in range(1, 21):
         print("||", end="")
         for j in range(10):
-            print(state[i][j] * 2, end="")
+            print(st[i][j] * 2, end="")
         print("||")
     print("̅" * 23)
+    
+
+def refresh(coordinates, func, cur, st):
+    preview = "\033[38;5;244m\033[48;5;244m"
+    for k in coordinates:
+        st[k[0]][k[1]] = " "  # clear previous coordinates
+    coordinates, st = func
+    preview_coordinates, st = drop(coordinates, st)
+    for k in preview_coordinates:
+        st[k[0]][k[1]] = f"{preview}$\033[0m"  # draw preview
+    for k in coordinates:
+        st[k[0]][k[1]] = f"{piece_colors[cur]}@\033[0m"  # draw new piece
+    draw(st)
     if preview_coordinates != coordinates:
         for k in preview_coordinates:
-            state[k[0]][k[1]] = " "
-    return coordinates
+            st[k[0]][k[1]] = " "
+    return coordinates, st
 
 
-def set_down(coordinates, cur):
-    for k in coordinates:
-        state[k[0]][k[1]] = f"{piece_colors[cur]}#\033[0m"
-    return
-
-
+def line_clear(st):
+    cleared_lines = []
+    for k in range(len(st)):
+        if search(".+#.+", st[k][0]):
+            full = True
+            for p in range(1, len(st[k])):
+                if not search(".+#.+", st[k][p]):
+                    full = False
+                    break
+            if full:
+                for q in range(len(st[k])):
+                    st[k][q] = " "
+                cleared_lines.append(k)
+    n = len(cleared_lines)
+    if n>0:
+        return [[" "]*10]*n + st[:cleared_lines[0]] + st[cleared_lines[-1]+1:]
+    return st
+            
+    
 # -----------------------------------------------------
 # MOVEMENT
 
-def rotate(coordinates, cur, rot):
+def rotate(coordinates, cur, rot, st):
     old_coordinates = coordinates
     y_coordinates = [i[0] for i in coordinates]
     x_coordinates = [i[1] for i in coordinates]
@@ -88,47 +105,53 @@ def rotate(coordinates, cur, rot):
     new_coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0],
                         coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
     for k in new_coordinates:
-        if search(r".+#.+", state[k[0]][k[1]]):
+        if search(r".+#.+", st[k[0]][k[1]]):
             return old_coordinates
-    return new_coordinates
+    return new_coordinates, st
 
 
-def move_side(val, coordinates):
-    if not collision_side(val, coordinates):
+def move_side(val, coordinates, st):
+    if not collision_side(val, coordinates, st):
         coordinates = [[k[0], k[1] + val] for k in coordinates]
-    return coordinates
+    return coordinates, st
 
 
-def move_down(coordinates):
-    return [[k[0] + 1, k[1]] for k in coordinates]
+def move_down(coordinates, st):
+    return [[k[0] + 1, k[1]] for k in coordinates], st
 
 
-def drop(coordinates):
-    while not collision_down(coordinates):
+def drop(coordinates, st):
+    while not collision_down(coordinates, st):
         coordinates = [[k[0] + 1, k[1]] for k in coordinates]
-    return coordinates
+    return coordinates, st
 
 
 # -----------------------------------------------------
 # OTHER
 
-def store(coordinates, stored, cur, lim):
+def store(coordinates, stored, cur, lim, st):
     if lim:
         return coordinates, stored, cur, lim
     for k in coordinates:
-        state[k[0]][k[1]] = " "
+        st[k[0]][k[1]] = " "
     if stored == "":
         new = generate()
-        return default_coordinates[new], cur, new, True
-    return default_coordinates[stored], cur, stored, True
+        return default_coordinates[new], cur, new, True, st
+    return default_coordinates[stored], cur, stored, True, st
 
 
 def generate():
     return choice(list(default_coordinates.keys()))
 
 
-def do_nothing(coordinates):
-    return coordinates
+def set_down(coordinates, cur, st):
+    for k in coordinates:
+        st[k[0]][k[1]] = f"{piece_colors[cur]}#\033[0m"
+    return st
+
+
+def do_nothing(coordinates, st):
+    return coordinates, st
 
 
 # -----------------------------------------------------
@@ -199,60 +222,63 @@ rotation_table = {
         ),
 }
 
-state = [[" " for _ in range(10)] for _ in range(21)]
+
 
 
 # -----------------------------------------------------
 # DRIVER CODE
 
 def main():
+    game_state = [[" " for _ in range(10)] for _ in range(21)]
     stored = ""
     while True:
+        game_state = line_clear(game_state)
         current = generate()
         cur_coords = default_coordinates[current]
         clock = 0
         rotation_state = 0
         store_limit = False
+        cur_coords, game_state = refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
         while True:
             x_coords = [i[1] for i in cur_coords]
             clock += 0.01
             if kbhit():  # check if there is keyboard input
                 keycode = ord(getch())  # get keyboard input
                 if keycode == 72 and current != "Square":  # Up arrow
-                    rotation_success = (cur_coords != rotate(cur_coords, current, rotation_state))
+                    rotation_success = (cur_coords != rotate(cur_coords, current, rotation_state, game_state))
                     if rotation_success:
-                        cur_coords = refresh(cur_coords, rotate(cur_coords, current, rotation_state), current)
+                        cur_coords, game_state = refresh(cur_coords, rotate(cur_coords, current, rotation_state, game_state), current, game_state)
                         rotation_state = (rotation_state + 1) % 4
                 elif keycode == 75:  # Left arrow
                     if 0 not in x_coords:  # check if coordinate after move would be out of range
-                        cur_coords = refresh(cur_coords, move_side(-1, cur_coords), current)
+                        cur_coords, game_state = refresh(cur_coords, move_side(-1, cur_coords, game_state), current, game_state)
                 elif keycode == 77:  # Right arrow
                     if 9 not in x_coords:
-                        cur_coords = refresh(cur_coords, move_side(1, cur_coords), current)
+                        cur_coords, game_state = refresh(cur_coords, move_side(1, cur_coords, game_state), current, game_state)
                 elif keycode == 80:  # Down arrow
                     if not collision_down(cur_coords):
-                        cur_coords = refresh(cur_coords, move_down(cur_coords), current)
+                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state), current, game_state)
                     else:
-                        set_down(cur_coords, current)
+                        game_state = set_down(cur_coords, current, game_state)
                         break
                 elif keycode == 99:  # "c"
-                    cur_coords, stored, current, store_limit = store(cur_coords, stored, current, store_limit)
+                    cur_coords, stored, current, store_limit, game_state = store(cur_coords, stored, current, store_limit, game_state)
                     rotation_state = 0
-                    refresh(cur_coords, do_nothing(cur_coords), current)
-                elif keycode == 114:  # "r"
-                    break
+                    refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
+                # elif keycode == 114:  # "r"
+                #     break
                 elif keycode == 32:  # Space
-                    cur_coords = refresh(cur_coords, drop(cur_coords), current)
-                    set_down(cur_coords, current)
+                    cur_coords, game_state = refresh(cur_coords, drop(cur_coords, game_state), current, game_state)
+                    game_state = set_down(cur_coords, current, game_state)
                     break
             else:
                 sleep(0.01)
                 if int(clock) == 1:
-                    if not collision_down(cur_coords):
+                    if not collision_down(cur_coords, game_state):
                         clock = 0
-                        cur_coords = refresh(cur_coords, move_down(cur_coords), current)
+                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state), current, game_state)
                     else:
-                        set_down(cur_coords, current)
+                        game_state = set_down(cur_coords, current, game_state)
                         break
 
 

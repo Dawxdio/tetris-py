@@ -1,1 +1,1 @@
-import curses as cl
+import curses as cs
