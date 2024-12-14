@@ -2,18 +2,18 @@ from os import name, system
 from time import sleep
 from random import choice
 from re import search
-from typing import Callable
 
 if name == 'nt':  # windows
     from msvcrt import getch, kbhit
-
+elif name == 'unix':
+    import curses as cs
 
 # -----------------------------------------------------
 # CHECKS
 
 def collision_down(coordinates: list[list[int]], st: list[list[str]]) -> bool:
     for k in coordinates:
-        if k[0] == 20 or search(r".+#.+", st[k[0] + 1][k[1]]):
+        if k[0] == 21 or search(r".+#.+", st[k[0] + 1][k[1]]):
             return True
     return False
 
@@ -38,15 +38,16 @@ def clear() -> None:
 def draw(st: list[list[str]]) -> None:
     clear()
     print("_" * 23)
-    for i in range(1, 21):
+    for i in range(2, 22):
         print("||", end="")
         for j in range(10):
             print(st[i][j] * 2, end="")
         print("||")
     print("̅" * 23)
-    
 
-def refresh(coordinates: list[list[int]], func: Callable, cur: str, st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
+
+def refresh(coordinates: list[list[int]], func: tuple[list[list[int]], list[list[str]]], cur: str, st: list[list[str]])\
+        -> tuple[list[list[int]], list[list[str]]]:
     preview = "\033[38;5;244m\033[48;5;244m"
     for k in coordinates:
         st[k[0]][k[1]] = " "  # clear previous coordinates
@@ -77,37 +78,39 @@ def line_clear(st: list[list[str]]) -> list[list[str]]:
                     st[k][q] = " "
                 cleared_lines.append(k)
     n = len(cleared_lines)
-    if n>0:
-        return [[" " for _ in range(10)] for _ in range(n)] + st[:cleared_lines[0]] + st[cleared_lines[-1]+1:]
+    if n > 0:
+        return [[" " for _ in range(10)] for _ in range(n)] + st[:cleared_lines[0]] + st[cleared_lines[-1] + 1:]
     return st
-            
-    
+
+
 # -----------------------------------------------------
 # MOVEMENT
 
-def rotate(coordinates: list[list[int]], cur: str, rot: int, st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
+def rotate(coordinates: list[list[int]], cur: str, rot: int, st: list[list[str]])\
+        -> tuple[list[list[int]], list[list[str]]]:
     old_coordinates = coordinates
-    y_coordinates = [i[0] for i in coordinates]
     x_coordinates = [i[1] for i in coordinates]
-    if 0 in y_coordinates:  # prevent rotating into ceiling
-        coordinates = [[k[0] + 1, k[1]] for k in coordinates]
-    elif 20 in y_coordinates:  # prevent rotating into floor
-        coordinates = [[k[0] - 1, k[1]] for k in coordinates]
-    if cur == "|" and rot == 3:
-        if 0 in x_coordinates or 1 in x_coordinates:
-            coordinates = [[k[0], k[1] + 2] for k in coordinates]
-    elif 0 in x_coordinates:  # prevent rotating into left wall
-        coordinates = [[k[0], k[1] + 1] for k in coordinates]
-    if cur == "|" and rot == 1:
-        if 9 in x_coordinates or 8 in x_coordinates:
-            coordinates = [[k[0], k[1] - 2] for k in coordinates]
-    elif 9 in x_coordinates:  # prevent rotating into right wall
-        coordinates = [[k[0], k[1] - 1] for k in coordinates]
+    if cur == "|":
+        if 0 in x_coordinates:
+            if 1 in x_coordinates:
+                coordinates = [[k[0], k[1] + 1] for k in coordinates]
+            else:
+                coordinates = [[k[0], k[1] + 2] for k in coordinates]
+        if 9 in x_coordinates:
+            if 8 in x_coordinates:
+                coordinates = [[k[0], k[1] - 1] for k in coordinates]
+            else:
+                coordinates = [[k[0], k[1] - 2] for k in coordinates]
+    else:
+        if 0 in x_coordinates:  # prevent rotating into left wall
+            coordinates = [[k[0], k[1] + 1] for k in coordinates]
+        if 9 in x_coordinates:  # prevent rotating into right wall
+            coordinates = [[k[0], k[1] - 1] for k in coordinates]
     new_coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0],
                         coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
     for k in new_coordinates:
-        if search(r".+#.+", st[k[0]][k[1]]):
-            return old_coordinates
+        if k[0] > 21 or k[1] > 9 or search(r".+#.+", st[k[0]][k[1]]):
+            return old_coordinates, st
     return new_coordinates, st
 
 
@@ -130,7 +133,8 @@ def drop(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[i
 # -----------------------------------------------------
 # OTHER
 
-def store(coordinates: list[list[int]], stored: str, cur: str, lim: bool, st: list[list[str]]) -> tuple[list[list[int]], str, str, bool, list[list[str]]]:
+def store(coordinates: list[list[int]], stored: str, cur: str, lim: bool, st: list[list[str]]) \
+        -> tuple[list[list[int]], str, str, bool, list[list[str]]]:
     if lim:
         return coordinates, stored, cur, lim, st
     for k in coordinates:
@@ -151,7 +155,7 @@ def set_down(coordinates: list, cur: str, st: list) -> list:
     return st
 
 
-def do_nothing(coordinates: list, st: list) -> tuple[list[list[int]], list]:
+def do_nothing(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
     return coordinates, st
 
 
@@ -159,13 +163,13 @@ def do_nothing(coordinates: list, st: list) -> tuple[list[list[int]], list]:
 # BLOCK DATA
 
 default_coordinates: dict[str, list[list[int]]] = {
-    "Z": [[0, 3], [0, 4], [1, 4], [1, 5]],
-    "Z_reverse": [[0, 4], [0, 5], [1, 3], [1, 4]],
-    "L": [[0, 5], [1, 3], [1, 4], [1, 5]],
-    "L_reverse": [[0, 3], [1, 3], [1, 4], [1, 5]],
-    "Square": [[0, 4], [0, 5], [1, 4], [1, 5]],
-    "T": [[0, 5], [1, 4], [1, 5], [1, 6]],
-    "|": [[1, 3], [1, 4], [1, 5], [1, 6]]
+    "Z": [[1, 3], [1, 4], [2, 4], [2, 5]],
+    "Z_reverse": [[1, 4], [1, 5], [2, 3], [2, 4]],
+    "L": [[1, 5], [2, 3], [2, 4], [2, 5]],
+    "L_reverse": [[1, 3], [2, 3], [2, 4], [2, 5]],
+    "Square": [[1, 4], [1, 5], [2, 4], [2, 5]],
+    "T": [[1, 5], [2, 4], [2, 5], [2, 6]],
+    "|": [[2, 3], [2, 4], [2, 5], [2, 6]]
 }
 
 piece_colors: dict[str, str] = {
@@ -178,7 +182,7 @@ piece_colors: dict[str, str] = {
     "|": '\033[96;106m'
 }
 
-rotation_table: dict[str, tuple[tuple[tuple[int]]]] = {
+rotation_table: dict[str, tuple] = {
     "Z":
         (
             ((0, 2), (1, 1), (0, 0), (1, -1)),
@@ -224,17 +228,19 @@ rotation_table: dict[str, tuple[tuple[tuple[int]]]] = {
 }
 
 
-
-
 # -----------------------------------------------------
 # DRIVER CODE
 
 def main():
-    game_state: list[list[str]] = [[" " for _ in range(10)] for _ in range(21)]
+    game_state: list[list[str]] = [[" " for _ in range(10)] for _ in range(22)]
     stored: str = ""
     while True:
         current: str = generate()
-        cur_coords: list[list[int]] = default_coordinates[current]
+        for i in game_state[1][3:6]:
+            if search(r".+#.+", i):
+                exit(0)
+            else:
+                cur_coords: list[list[int]] = default_coordinates[current]
         clock: float = 0
         rotation_state: int = 0
         store_limit: bool = False
@@ -245,29 +251,35 @@ def main():
             if kbhit():  # check if there is keyboard input
                 keycode: int = ord(getch())  # get keyboard input
                 if keycode == 72 and current != "Square":  # Up arrow
-                    rotation_success = (cur_coords != rotate(cur_coords, current, rotation_state, game_state))
+                    rotation_success = (cur_coords, game_state != rotate(cur_coords, current, rotation_state, game_state))
                     if rotation_success:
-                        cur_coords, game_state = refresh(cur_coords, rotate(cur_coords, current, rotation_state, game_state), current, game_state)
+                        cur_coords, game_state = refresh(cur_coords,
+                                                         rotate(cur_coords, current, rotation_state, game_state),
+                                                         current, game_state)
                         rotation_state = (rotation_state + 1) % 4
                 elif keycode == 75:  # Left arrow
                     if 0 not in x_coords:  # check if coordinate after move would be out of range
-                        cur_coords, game_state = refresh(cur_coords, move_side(-1, cur_coords, game_state), current, game_state)
+                        cur_coords, game_state = refresh(cur_coords, move_side(-1, cur_coords, game_state), current,
+                                                         game_state)
                 elif keycode == 77:  # Right arrow
                     if 9 not in x_coords:
-                        cur_coords, game_state = refresh(cur_coords, move_side(1, cur_coords, game_state), current, game_state)
+                        cur_coords, game_state = refresh(cur_coords, move_side(1, cur_coords, game_state), current,
+                                                         game_state)
                 elif keycode == 80:  # Down arrow
                     if not collision_down(cur_coords, game_state):
-                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state), current, game_state)
+                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state), current,
+                                                         game_state)
                     else:
                         game_state = set_down(cur_coords, current, game_state)
                         game_state = line_clear(game_state)
                         break
                 elif keycode == 99:  # "c"
-                    cur_coords, stored, current, store_limit, game_state = store(cur_coords, stored, current, store_limit, game_state)
+                    cur_coords, stored, current, store_limit, game_state = store(cur_coords, stored, current,
+                                                                                 store_limit, game_state)
                     rotation_state = 0
                     refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
-                # elif keycode == 114:  # "r"
-                #     break
+                elif keycode == 114:  # "r"
+                    main()
                 elif keycode == 32:  # Space
                     cur_coords, game_state = refresh(cur_coords, drop(cur_coords, game_state), current, game_state)
                     game_state = set_down(cur_coords, current, game_state)
@@ -278,7 +290,8 @@ def main():
                 if int(clock) == 1:
                     if not collision_down(cur_coords, game_state):
                         clock = 0
-                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state), current, game_state)
+                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state), current,
+                                                         game_state)
                     else:
                         game_state = set_down(cur_coords, current, game_state)
                         game_state = line_clear(game_state)

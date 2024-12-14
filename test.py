@@ -1,1 +1,0 @@
-import curses as cs

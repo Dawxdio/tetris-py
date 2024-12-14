@@ -1,6 +1,0 @@
-#TODO
-- funkcja obracanie
-- funkcja drop
-- automatyczny drop, przyśpieszający
-- punkty
-- różne tryby gry (sprint, classic)
