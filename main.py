@@ -2,6 +2,7 @@ from os import name, system
 from time import sleep
 from random import choice
 from re import search
+from typing import Callable
 
 if name == 'nt':  # windows
     from msvcrt import getch, kbhit
@@ -10,14 +11,14 @@ if name == 'nt':  # windows
 # -----------------------------------------------------
 # CHECKS
 
-def collision_down(coordinates, st):
+def collision_down(coordinates: list[list[int]], st: list[list[str]]) -> bool:
     for k in coordinates:
         if k[0] == 20 or search(r".+#.+", st[k[0] + 1][k[1]]):
             return True
     return False
 
 
-def collision_side(val, coordinates, st):
+def collision_side(val: int, coordinates: list[list[int]], st: list[list[str]]) -> bool:
     for k in coordinates:
         if search(r".+#.+", st[k[0]][k[1] + val]):
             return True
@@ -27,14 +28,14 @@ def collision_side(val, coordinates, st):
 # -----------------------------------------------------
 # PRINT
 
-def clear():
+def clear() -> None:
     if name == 'nt':
         system('cls')
     else:
         system('clear')
 
 
-def draw(st):
+def draw(st: list[list[str]]) -> None:
     clear()
     print("_" * 23)
     for i in range(1, 21):
@@ -45,7 +46,7 @@ def draw(st):
     print("̅" * 23)
     
 
-def refresh(coordinates, func, cur, st):
+def refresh(coordinates: list[list[int]], func: Callable, cur: str, st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
     preview = "\033[38;5;244m\033[48;5;244m"
     for k in coordinates:
         st[k[0]][k[1]] = " "  # clear previous coordinates
@@ -62,7 +63,7 @@ def refresh(coordinates, func, cur, st):
     return coordinates, st
 
 
-def line_clear(st):
+def line_clear(st: list[list[str]]) -> list[list[str]]:
     cleared_lines = []
     for k in range(len(st)):
         if search(".+#.+", st[k][0]):
@@ -77,14 +78,14 @@ def line_clear(st):
                 cleared_lines.append(k)
     n = len(cleared_lines)
     if n>0:
-        return [[" "]*10]*n + st[:cleared_lines[0]] + st[cleared_lines[-1]+1:]
+        return [[" " for _ in range(10)] for _ in range(n)] + st[:cleared_lines[0]] + st[cleared_lines[-1]+1:]
     return st
             
     
 # -----------------------------------------------------
 # MOVEMENT
 
-def rotate(coordinates, cur, rot, st):
+def rotate(coordinates: list[list[int]], cur: str, rot: int, st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
     old_coordinates = coordinates
     y_coordinates = [i[0] for i in coordinates]
     x_coordinates = [i[1] for i in coordinates]
@@ -110,17 +111,17 @@ def rotate(coordinates, cur, rot, st):
     return new_coordinates, st
 
 
-def move_side(val, coordinates, st):
+def move_side(val: int, coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
     if not collision_side(val, coordinates, st):
         coordinates = [[k[0], k[1] + val] for k in coordinates]
     return coordinates, st
 
 
-def move_down(coordinates, st):
+def move_down(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
     return [[k[0] + 1, k[1]] for k in coordinates], st
 
 
-def drop(coordinates, st):
+def drop(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
     while not collision_down(coordinates, st):
         coordinates = [[k[0] + 1, k[1]] for k in coordinates]
     return coordinates, st
@@ -129,9 +130,9 @@ def drop(coordinates, st):
 # -----------------------------------------------------
 # OTHER
 
-def store(coordinates, stored, cur, lim, st):
+def store(coordinates: list[list[int]], stored: str, cur: str, lim: bool, st: list[list[str]]) -> tuple[list[list[int]], str, str, bool, list[list[str]]]:
     if lim:
-        return coordinates, stored, cur, lim
+        return coordinates, stored, cur, lim, st
     for k in coordinates:
         st[k[0]][k[1]] = " "
     if stored == "":
@@ -140,24 +141,24 @@ def store(coordinates, stored, cur, lim, st):
     return default_coordinates[stored], cur, stored, True, st
 
 
-def generate():
+def generate() -> str:
     return choice(list(default_coordinates.keys()))
 
 
-def set_down(coordinates, cur, st):
+def set_down(coordinates: list, cur: str, st: list) -> list:
     for k in coordinates:
         st[k[0]][k[1]] = f"{piece_colors[cur]}#\033[0m"
     return st
 
 
-def do_nothing(coordinates, st):
+def do_nothing(coordinates: list, st: list) -> tuple[list[list[int]], list]:
     return coordinates, st
 
 
 # -----------------------------------------------------
 # BLOCK DATA
 
-default_coordinates = {
+default_coordinates: dict[str, list[list[int]]] = {
     "Z": [[0, 3], [0, 4], [1, 4], [1, 5]],
     "Z_reverse": [[0, 4], [0, 5], [1, 3], [1, 4]],
     "L": [[0, 5], [1, 3], [1, 4], [1, 5]],
@@ -167,7 +168,7 @@ default_coordinates = {
     "|": [[1, 3], [1, 4], [1, 5], [1, 6]]
 }
 
-piece_colors = {
+piece_colors: dict[str, str] = {
     "Z": '\033[91;101m',
     "Z_reverse": '\033[92;102m',
     "L": '\033[94;104m',
@@ -177,7 +178,7 @@ piece_colors = {
     "|": '\033[96;106m'
 }
 
-rotation_table = {
+rotation_table: dict[str, tuple[tuple[tuple[int]]]] = {
     "Z":
         (
             ((0, 2), (1, 1), (0, 0), (1, -1)),
@@ -229,21 +230,20 @@ rotation_table = {
 # DRIVER CODE
 
 def main():
-    game_state = [[" " for _ in range(10)] for _ in range(21)]
-    stored = ""
+    game_state: list[list[str]] = [[" " for _ in range(10)] for _ in range(21)]
+    stored: str = ""
     while True:
-        game_state = line_clear(game_state)
-        current = generate()
-        cur_coords = default_coordinates[current]
-        clock = 0
-        rotation_state = 0
-        store_limit = False
+        current: str = generate()
+        cur_coords: list[list[int]] = default_coordinates[current]
+        clock: float = 0
+        rotation_state: int = 0
+        store_limit: bool = False
         cur_coords, game_state = refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
         while True:
-            x_coords = [i[1] for i in cur_coords]
+            x_coords: list[int] = [i[1] for i in cur_coords]
             clock += 0.01
             if kbhit():  # check if there is keyboard input
-                keycode = ord(getch())  # get keyboard input
+                keycode: int = ord(getch())  # get keyboard input
                 if keycode == 72 and current != "Square":  # Up arrow
                     rotation_success = (cur_coords != rotate(cur_coords, current, rotation_state, game_state))
                     if rotation_success:
@@ -256,10 +256,11 @@ def main():
                     if 9 not in x_coords:
                         cur_coords, game_state = refresh(cur_coords, move_side(1, cur_coords, game_state), current, game_state)
                 elif keycode == 80:  # Down arrow
-                    if not collision_down(cur_coords):
+                    if not collision_down(cur_coords, game_state):
                         cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state), current, game_state)
                     else:
                         game_state = set_down(cur_coords, current, game_state)
+                        game_state = line_clear(game_state)
                         break
                 elif keycode == 99:  # "c"
                     cur_coords, stored, current, store_limit, game_state = store(cur_coords, stored, current, store_limit, game_state)
@@ -270,6 +271,7 @@ def main():
                 elif keycode == 32:  # Space
                     cur_coords, game_state = refresh(cur_coords, drop(cur_coords, game_state), current, game_state)
                     game_state = set_down(cur_coords, current, game_state)
+                    game_state = line_clear(game_state)
                     break
             else:
                 sleep(0.01)
@@ -279,6 +281,7 @@ def main():
                         cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state), current, game_state)
                     else:
                         game_state = set_down(cur_coords, current, game_state)
+                        game_state = line_clear(game_state)
                         break
 
 
