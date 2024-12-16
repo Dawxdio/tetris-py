@@ -37,13 +37,13 @@ def clear() -> None:
 
 def draw(st: list[list[str]]) -> None:
     clear()
-    print("_" * 23)
+    print("_" * 24)
     for i in range(2, 22):
         print("||", end="")
         for j in range(10):
             print(st[i][j] * 2, end="")
         print("||")
-    print("̅" * 23)
+    print("~"* 24)
 
 
 def refresh(coordinates: list[list[int]], func: tuple[list[list[int]], list[list[str]]], cur: str, st: list[list[str]])\
@@ -159,6 +159,22 @@ def do_nothing(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[
     return coordinates, st
 
 
+def pause_menu():
+    clear()
+    print("||      Game Paused       ||")
+    print("|| Press Esc To Continue  ||")
+    print("|| Press R To Reset       ||")
+    print("|| Press Q To Quit        ||")
+    key = ord(getch())
+    if key == 27: # "Esc"
+        return
+    elif key == 114:  # "r"
+        main()
+        return
+    elif key == 113:  #"q"
+        quit(0)
+    else:
+        pause_menu()
 # -----------------------------------------------------
 # BLOCK DATA
 
@@ -278,8 +294,8 @@ def main():
                                                                                  store_limit, game_state)
                     rotation_state = 0
                     refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
-                elif keycode == 114:  # "r"
-                    main()
+                elif keycode == 27:  # "Esc"
+                    pause_menu()
                 elif keycode == 32:  # Space
                     cur_coords, game_state = refresh(cur_coords, drop(cur_coords, game_state), current, game_state)
                     game_state = set_down(cur_coords, current, game_state)
