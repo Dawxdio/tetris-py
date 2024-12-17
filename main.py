@@ -11,14 +11,14 @@ elif name == 'unix':
 # -----------------------------------------------------
 # CHECKS
 
-def collision_down(coordinates: list[list[int]], st: list[list[str]]) -> bool:
+def collision_down(coordinates: tuple[tuple[int]], st: list[list[str]]) -> bool:
     for k in coordinates:
         if k[0] == 21 or search(r".+#.+", st[k[0] + 1][k[1]]):
             return True
     return False
 
 
-def collision_side(val: int, coordinates: list[list[int]], st: list[list[str]]) -> bool:
+def collision_side(val: int, coordinates: tuple[tuple[int]], st: list[list[str]]) -> bool:
     for k in coordinates:
         if search(r".+#.+", st[k[0]][k[1] + val]):
             return True
@@ -37,7 +37,7 @@ def clear() -> None:
 
 def draw(st: list[list[str]]) -> None:
     clear()
-    print("_" * 24)
+    print("~" * 24)
     for i in range(2, 22):
         print("||", end="")
         for j in range(10):
@@ -46,8 +46,8 @@ def draw(st: list[list[str]]) -> None:
     print("~"* 24)
 
 
-def refresh(coordinates: list[list[int]], func: tuple[list[list[int]], list[list[str]]], cur: str, st: list[list[str]])\
-        -> tuple[list[list[int]], list[list[str]]]:
+def refresh(coordinates: tuple[tuple[int]], func: tuple[tuple[tuple[int]], list[list[str]]], cur: str, st: list[list[str]])\
+        -> tuple[tuple[tuple[int]], list[list[str]]]:
     preview = "\033[38;5;244m\033[48;5;244m"
     for k in coordinates:
         st[k[0]][k[1]] = " "  # clear previous coordinates
@@ -86,11 +86,11 @@ def line_clear(st: list[list[str]]) -> list[list[str]]:
 # -----------------------------------------------------
 # MOVEMENT
 
-def rotate(coordinates: list[list[int]], cur: str, rot: int, st: list[list[str]])\
-        -> tuple[list[list[int]], list[list[str]]]:
+def rotate(coordinates: tuple[tuple[int]], cur: str, rot: int, st: list[list[str]])\
+        -> tuple[tuple[tuple[int]], list[list[str]]]:
     old_coordinates = coordinates
     x_coordinates = [i[1] for i in coordinates]
-    if cur == "|":
+    if cur == "|":  # TODO: STILL BUGGED !!
         if 0 in x_coordinates:
             if 1 in x_coordinates:
                 coordinates = [[k[0], k[1] + 1] for k in coordinates]
@@ -114,17 +114,17 @@ def rotate(coordinates: list[list[int]], cur: str, rot: int, st: list[list[str]]
     return new_coordinates, st
 
 
-def move_side(val: int, coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
+def move_side(val: int, coordinates: tuple[tuple[int]], st: list[list[str]]) -> tuple[tuple[tuple[int]], list[list[str]]]:
     if not collision_side(val, coordinates, st):
         coordinates = [[k[0], k[1] + val] for k in coordinates]
     return coordinates, st
 
 
-def move_down(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
+def move_down(coordinates: tuple[tuple[int]], st: list[list[str]]) -> tuple[tuple[tuple[int]], list[list[str]]]:
     return [[k[0] + 1, k[1]] for k in coordinates], st
 
 
-def drop(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
+def drop(coordinates: tuple[tuple[int]], st: list[list[str]]) -> tuple[tuple[tuple[int]], list[list[str]]]:
     while not collision_down(coordinates, st):
         coordinates = [[k[0] + 1, k[1]] for k in coordinates]
     return coordinates, st
@@ -133,8 +133,8 @@ def drop(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[i
 # -----------------------------------------------------
 # OTHER
 
-def store(coordinates: list[list[int]], stored: str, cur: str, lim: bool, st: list[list[str]]) \
-        -> tuple[list[list[int]], str, str, bool, list[list[str]]]:
+def store(coordinates: tuple[tuple[int]], stored: str, cur: str, lim: bool, st: list[list[str]]) \
+        -> tuple[tuple[tuple[int]], str, str, bool, list[list[str]]]:
     if lim:
         return coordinates, stored, cur, lim, st
     for k in coordinates:
@@ -155,18 +155,37 @@ def set_down(coordinates: list, cur: str, st: list) -> list:
     return st
 
 
-def do_nothing(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
+def do_nothing(coordinates: tuple[tuple[int]], st: list[list[str]]) -> tuple[tuple[tuple[int]], list[list[str]]]:
     return coordinates, st
 
 
-def pause_menu():
-    clear()
-    print("||      Game Paused       ||")
-    print("|| Press Esc To Continue  ||")
-    print("|| Press R To Reset       ||")
-    print("|| Press Q To Quit        ||")
+def menu(st: list[list[str]], menuType: str, isNew: bool) -> None:
+    if isNew:
+        clear()
+        print("~"*24)
+        for k in st[2:9]:
+            print("||", end="")
+            for n in k:
+                print(n*2, end="")
+            print("||")
+        print("#"*24)
+        if menuType == "pause":
+            print("#     Game Paused      #")
+            print("# Continue:  Press Esc #")
+        else:
+            print("#      Game Over!      #")
+            print("# Score:               #")
+        print("# New Game:  Press R   #")
+        print("# Quit:      Press Q   #")
+        print("#"*24)
+        for k in st[15:]:
+            print("||", end="")
+            for n in k:
+                print(n*2, end="")
+            print("||")
+        print("~"*24)
     key = ord(getch())
-    if key == 27: # "Esc"
+    if key == 27 and menuType == "pause": # "Esc"
         return
     elif key == 114:  # "r"
         main()
@@ -174,18 +193,19 @@ def pause_menu():
     elif key == 113:  #"q"
         quit(0)
     else:
-        pause_menu()
+        menu(st, menuType, isNew=False)
+
 # -----------------------------------------------------
 # BLOCK DATA
 
-default_coordinates: dict[str, list[list[int]]] = {
-    "Z": [[1, 3], [1, 4], [2, 4], [2, 5]],
-    "Z_reverse": [[1, 4], [1, 5], [2, 3], [2, 4]],
-    "L": [[1, 5], [2, 3], [2, 4], [2, 5]],
-    "L_reverse": [[1, 3], [2, 3], [2, 4], [2, 5]],
-    "Square": [[1, 4], [1, 5], [2, 4], [2, 5]],
-    "T": [[1, 5], [2, 4], [2, 5], [2, 6]],
-    "|": [[2, 3], [2, 4], [2, 5], [2, 6]]
+default_coordinates: dict[str, tuple[tuple[int]]] = {
+    "Z": ((1, 3), (1, 4), (2, 4), (2, 5)),
+    "Z_reverse": ((1, 4), (1, 5), (2, 3), (2, 4)),
+    "L": ((1, 5), (2, 3), (2, 4), (2, 5)),
+    "L_reverse": ((1, 3), (2, 3), (2, 4), (2, 5)),
+    "Square": ((1, 4), (1, 5), (2, 4), (2, 5)),
+    "T": ((1, 5), (2, 4), (2, 5), (2, 6)),
+    "|": ((2, 3), (2, 4), (2, 5), (2, 6))
 }
 
 piece_colors: dict[str, str] = {
@@ -254,9 +274,9 @@ def main():
         current: str = generate()
         for i in game_state[1][3:6]:
             if search(r".+#.+", i):
-                exit(0)
+                menu(game_state, "over", isNew=True)
             else:
-                cur_coords: list[list[int]] = default_coordinates[current]
+                cur_coords: tuple[tuple[int]] = default_coordinates[current]
         clock: float = 0
         rotation_state: int = 0
         store_limit: bool = False
@@ -295,7 +315,8 @@ def main():
                     rotation_state = 0
                     refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
                 elif keycode == 27:  # "Esc"
-                    pause_menu()
+                    menu(game_state, "pause", isNew=True)
+                    cur_coords, game_state = refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
                 elif keycode == 32:  # Space
                     cur_coords, game_state = refresh(cur_coords, drop(cur_coords, game_state), current, game_state)
                     game_state = set_down(cur_coords, current, game_state)
