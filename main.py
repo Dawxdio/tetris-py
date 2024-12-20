@@ -102,26 +102,32 @@ def line_clear(st: list[list[str]], sco: int, com: int, dif: bool) -> tuple[list
 
 def rotate(coordinates: tuple[tuple[int]], cur: str, rot: int, st: list[list[str]])\
         -> tuple[tuple[tuple[int]], list[list[str]]]:
-    old_coordinates = coordinates
-    x_coordinates = [i[1] for i in coordinates]
-    if cur == "|":  # TODO: STILL BUGGED !!
-        if 0 in x_coordinates:
-            if 1 in x_coordinates:
-                coordinates = [[k[0], k[1] + 1] for k in coordinates]
-            else:
-                coordinates = [[k[0], k[1] + 2] for k in coordinates]
-        if 9 in x_coordinates:
-            if 8 in x_coordinates:
-                coordinates = [[k[0], k[1] - 1] for k in coordinates]
-            else:
-                coordinates = [[k[0], k[1] - 2] for k in coordinates]
+    old_coordinates: tuple[tuple[int]] = coordinates
+    x_coordinates: tuple[int] = (i[1] for i in coordinates)
+    if cur == "I":  # TODO: STILL BUGGED !!
+        xcord_I: int = x_coordinates[0]
+        if xcord_I == x_coordinates[3]:
+            if rot == 3:
+                if xcord_I == 0:
+                    coordinates = ((k[0], k[1] + 2) for k in coordinates)
+                elif xcord_I == 1:
+                    coordinates = ((k[0], k[1] + 1) for k in coordinates)
+                elif xcord_I == 9:
+                    coordinates = ((k[0], k[1] - 1) for k in coordinates)
+            if rot == 1:
+                if xcord_I == 9:
+                    coordinates = ((k[0], k[1] - 2) for k in coordinates)
+                elif xcord_I == 8:
+                    coordinates = ((k[0], k[1] - 1) for k in coordinates)
+                elif xcord_I == 0:
+                    coordinates = ((k[0], k[1] + 1) for k in coordinates)
     else:
         if 0 in x_coordinates:  # prevent rotating into left wall
-            coordinates = [[k[0], k[1] + 1] for k in coordinates]
+            coordinates = ((k[0], k[1] + 1) for k in coordinates)
         if 9 in x_coordinates:  # prevent rotating into right wall
-            coordinates = [[k[0], k[1] - 1] for k in coordinates]
-    new_coordinates = [[coordinates[k][0] + rotation_table[cur][rot][k][0],
-                        coordinates[k][1] + rotation_table[cur][rot][k][1]] for k in range(len(coordinates))]
+            coordinates = ((k[0], k[1] - 1) for k in coordinates)
+    new_coordinates = ((coordinates[k][0] + rotation_table[cur][rot][k][0],
+                        coordinates[k][1] + rotation_table[cur][rot][k][1]) for k in range(len(coordinates)))
     for k in new_coordinates:
         if k[0] > 21 or k[1] > 9 or search(r".+#.+", st[k[0]][k[1]]):
             return old_coordinates, st
@@ -130,21 +136,21 @@ def rotate(coordinates: tuple[tuple[int]], cur: str, rot: int, st: list[list[str
 
 def move_side(val: int, coordinates: tuple[tuple[int]], st: list[list[str]]) -> tuple[tuple[tuple[int]], list[list[str]]]:
     if not collision_side(val, coordinates, st):
-        coordinates = [[k[0], k[1] + val] for k in coordinates]
+        coordinates = ((k[0], k[1] + val) for k in coordinates)
     return coordinates, st
 
 
 def move_down(coordinates: tuple[tuple[int]], st: list[list[str]], sco=None) -> tuple[tuple[tuple[int]], list[list[str]], None|int]:
     if sco != None:
-        return [[k[0] + 1, k[1]] for k in coordinates], st, sco+1
-    return [[k[0] + 1, k[1]] for k in coordinates], st
+        return ((k[0] + 1, k[1]) for k in coordinates), st, sco+1
+    return ((k[0] + 1, k[1]) for k in coordinates), st
 
 
 def drop(coordinates: tuple[tuple[int]], st: list[list[str]], sco=None) -> tuple[tuple[tuple[int]], list[list[str]], None|int]:
     while not collision_down(coordinates, st):
         if sco != None:
             sco+=2
-        coordinates = [[k[0] + 1, k[1]] for k in coordinates]
+        coordinates = ((k[0] + 1, k[1]) for k in coordinates)
     if sco != None:
         return coordinates, st, sco
     return coordinates, st
@@ -194,7 +200,7 @@ def menu(st: list[list[str]], menuType: str, sco: int, isNew: bool) -> None:
             print("# Continue:  Press Esc #")
         else:
             print("#      Game Over!      #")
-            print(f"# Score: {sco}{" "*(12 - len(str(sco)))}#")
+            print(f"# Score: {sco}{" "*(14 - len(str(sco)))}#")
         print("# New Game:  Press R   #")
         print("# Quit:      Press Q   #")
         print("#"*24)
@@ -220,22 +226,22 @@ def menu(st: list[list[str]], menuType: str, sco: int, isNew: bool) -> None:
 
 default_coordinates: dict[str, tuple[tuple[int]]] = {
     "Z": ((1, 3), (1, 4), (2, 4), (2, 5)),
-    "Z_reverse": ((1, 4), (1, 5), (2, 3), (2, 4)),
+    "S": ((1, 4), (1, 5), (2, 3), (2, 4)),
     "L": ((1, 5), (2, 3), (2, 4), (2, 5)),
-    "L_reverse": ((1, 3), (2, 3), (2, 4), (2, 5)),
-    "Square": ((1, 4), (1, 5), (2, 4), (2, 5)),
+    "J": ((1, 3), (2, 3), (2, 4), (2, 5)),
+    "O": ((1, 4), (1, 5), (2, 4), (2, 5)),
     "T": ((1, 5), (2, 4), (2, 5), (2, 6)),
-    "|": ((2, 3), (2, 4), (2, 5), (2, 6))
+    "I": ((2, 3), (2, 4), (2, 5), (2, 6))
 }
 
 piece_colors: dict[str, str] = {
     "Z": '\033[91;101m',
-    "Z_reverse": '\033[92;102m',
+    "S": '\033[92;102m',
     "L": '\033[94;104m',
-    "L_reverse": '\033[38;5;202m\033[48;5;202m',
-    "Square": '\033[93;103m',
+    "J": '\033[38;5;202m\033[48;5;202m',
+    "O": '\033[93;103m',
     "T": '\033[95;105m',
-    "|": '\033[96;106m'
+    "I": '\033[96;106m'
 }
 
 rotation_table: dict[str, tuple] = {
@@ -246,7 +252,7 @@ rotation_table: dict[str, tuple] = {
             ((0, -2), (-1, -1), (0, 0), (-1, 1)),
             ((-2, 0), (-1, 1), (0, 0), (1, 1))
         ),
-    "Z_reverse":
+    "S":
         (
             ((1, 1), (2, 0), (-1, 1), (0, 0)),
             ((1, -1), (0, -2), (1, 1), (0, 0)),
@@ -260,7 +266,7 @@ rotation_table: dict[str, tuple] = {
             ((-2, 0), (1, -1), (0, 0), (-1, 1)),
             ((0, 2), (-1, -1), (0, 0), (1, 1))
         ),
-    "L_reverse":
+    "J":
         (
             ((0, 2), (-1, 1), (0, 0), (1, -1)),
             ((2, 0), (1, 1), (0, 0), (-1, -1)),
@@ -274,7 +280,7 @@ rotation_table: dict[str, tuple] = {
             ((-1, -1), (1, -1), (0, 0), (-1, 1)),
             ((-1, 1), (-1, -1), (0, 0), (1, 1))
         ),
-    "|":
+    "I":
         (
             ((-2, 2), (-1, 1), (0, 0), (1, -1)),
             ((2, 2), (1, 1), (0, 0), (-1, -1)),
@@ -294,7 +300,7 @@ def main():
     game_state: list[list[str]] = [[" " for _ in range(10)] for _ in range(22)]
     stored: str = ""
     while True:
-        current: str = generate()
+        current: str = "I"#generate()
         for i in game_state[1][3:6]:
             if search(r".+#.+", i):
                 menu(game_state, "over", game_score, isNew=True)
@@ -309,7 +315,7 @@ def main():
             clock += 0.01
             if kbhit():  # check if there is keyboard input
                 keycode: int = ord(getch())  # get keyboard input
-                if keycode == 72 and current != "Square":  # Up arrow
+                if keycode == 72 and current != "O":  # Up arrow
                     rotation_success = (cur_coords, game_state != rotate(cur_coords, current, rotation_state, game_state))
                     if rotation_success:
                         cur_coords, game_state = refresh(cur_coords,
@@ -354,7 +360,7 @@ def main():
                                                          game_state)
                     else:
                         game_state = set_down(cur_coords, current, game_state)
-                        game_state = line_clear(game_state)
+                        game_state, game_score, combo, difficult = line_clear(game_state, game_score, combo, difficult)
                         break
 
 
