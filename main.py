@@ -32,20 +32,34 @@ def clear() -> None:
         system('clear')
 
 
-def draw(st: list[list[str]]) -> None:
+def draw(st: list[list[str]]) -> None:  # st == middle screen
+    global right_screen, left_screen
     clear()
-    print("~" * 24)
+    print("||", end="")
+    print("~" * 20, end="||")
+    print("~" * 20, end="||")
+    print("~" * 20, end="||\n")
     for i in range(2, 22):
+        print("||", end="")
+        for j in range(20):
+            print(left_screen[i][j], end="")
+        
         print("||", end="")
         for j in range(10):
             print(st[i][j] * 2, end="")
+        print("||", end="")
+        for j in range(20):
+            print(right_screen[i][j], end="")
         print("||")
-    print("~" * 24)
-
+    print("||", end="")
+    print("~" * 20, end="||")
+    print("~" * 20, end="||")
+    print("~" * 20, end="||\n")
 
 def refresh(coordinates: list[list[int]], func: tuple[list[list[int]], list[list[str]]], cur: str, st: list[list[str]]) \
         -> tuple[list[list[int]], list[list[str]]]:
     preview = "\033[38;5;244m\033[48;5;244m"
+    
     for k in coordinates:
         st[k[0]][k[1]] = " "  # clear previous coordinates
     coordinates, st = func
@@ -154,10 +168,15 @@ def drop(coordinates: list[list[int]], st: list[list[str]], scored: bool) -> tup
 
 def store(coordinates: list[list[int]], stored: str, cur: str, lim: bool, st: list[list[str]]) \
         -> tuple[list[list[int]], str, str, bool, list[list[str]]]:
+    global right_screen
     if lim:
         return coordinates, stored, cur, lim, st
     for k in coordinates:
         st[k[0]][k[1]] = " "
+    count1 = [i[0] for i in default_coordinates[cur]].count(1)
+    count2 = [i[0] for i in default_coordinates[cur]].count(2)
+    left_screen[10] = [*f'{" "*(6)}{f"{piece_colors[cur]}@\033[0m"*2*count1}{" "*(14-count1)}']
+    left_screen[11] = [*f'{" "*(6)}{f"{piece_colors[cur]}@\033[0m"*2*count2}{" "*(14-count2)}']
     if stored == "":
         new = generate()
         return default_coordinates[new], cur, new, True, st
@@ -285,19 +304,63 @@ rotation_table: dict[str, tuple] = {
 }
 
 game_score: int = 0
-
+left_screen: list[list[str]] =[[*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"       SCORE:       "],
+                                [*"         0          "],
+                                [*"                    "],
+                                [*"~~~~~~~~~~~~~~~~~~~~"],
+                                [*"                    "],
+                                [*"      STORED:       "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"~~~~~~~~~~~~~~~~~~~~"],
+                                [*"     CONTROLS:      "],
+                                [*" -Up arrow: Rotate  "],
+                                [*" -Left/Right arrow: "],
+                                [*"  Move Left/Right   "],
+                                [*" -Down arrow: Drop  "],
+                                [*" -C: Store          "],
+                                [*" -Space: Quick Drop "],
+                                [*" -Esc: Pause        "],]
+right_screen: list[list[str]] = [[*"                    "],
+                                [*"                    "],
+                                [*"     UPCOMING:      "],
+                                [*"~~~~~~~~~~~~~~~~~~~~"],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],]
 
 # -----------------------------------------------------
 # DRIVER CODE
 
 
 def main():
-    global game_score
+    global game_score, right_screen, left_screen
     combo: int = 0
     difficult: bool = False
     game_state: list[list[str]] = [[" " for _ in range(10)] for _ in range(22)]
     stored: str = ""
     while True:
+        left_screen[4] = [*f"{" "*(9-len(str(game_score))//2)}{str(game_score)}{" "*(12-len(str(game_score))//2)}"]
         current: str = generate()
         cur_coords: list[list[int]] = default_coordinates[current]
         for i in game_state[1][3:6]:
