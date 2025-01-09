@@ -18,10 +18,13 @@ This is a project I made for my 'Coding Basics' course at university.
    ```
 4. Run the downloaded file
    a) Windows:
+   
    ```
    python C:\Users\%USERNAME%\Downloads\tetris_windows.py
    ```
+   
    b) Linux
+   
    ```
    python /home/${USER}/Downloads/tetris_linux.py
    ```
