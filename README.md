@@ -13,7 +13,7 @@ This is a project I made for my 'Coding Basics' course at university.
      * Press Enter
        
    b) Linux:
-    *
+     * idk
 4. Check that you have Python installed.
    ```
    python --version
