@@ -1,4 +1,6 @@
 # Default ignored files
 /shelf/
 /workspace.xml/
-/TODO.txt
+/TODO.txt/
+/.idea/
+/test.py
