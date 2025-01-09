@@ -3,10 +3,8 @@ from time import sleep
 from random import choice
 from msvcrt import getch, kbhit
 
-
 # -----------------------------------------------------
 # CHECKS
-
 
 def collision_down(coordinates: list[list[int]], st: list[list[str]]) -> bool:
     for k in coordinates:
@@ -21,7 +19,6 @@ def collision_side(val: int, coordinates: list[list[int]], st: list[list[str]]) 
             return True
     return False
 
-
 # -----------------------------------------------------
 # PRINT
 
@@ -33,7 +30,7 @@ def clear() -> None:
 
 
 def draw(st: list[list[str]]) -> None:  # st == middle screen
-    global right_screen, left_screen
+    global right_screen, left_screen, speed_incr
     clear()
     print("||", end="")
     print("~" * 20, end="||")
@@ -77,6 +74,7 @@ def refresh(coordinates: list[list[int]], func: tuple[list[list[int]], list[list
 
 
 def line_clear(st: list[list[str]], sco: int, com: int, dif: bool) -> tuple[list[list[str]], int, int, bool]:
+    global speed_incr, difficulty
     cleared_lines = []
     points = [100, 300, 500, 800]
     for k in range(len(st)):
@@ -91,6 +89,7 @@ def line_clear(st: list[list[str]], sco: int, com: int, dif: bool) -> tuple[list
                     st[k][q] = " "
                 cleared_lines.append(k)
     n = len(cleared_lines)
+    speed_incr += n*difficulty
     if n > 0:
         act_sco = points[n - 1] + (50 * com)
         if dif:
@@ -102,7 +101,6 @@ def line_clear(st: list[list[str]], sco: int, com: int, dif: bool) -> tuple[list
         sco += act_sco
         return [[" " for _ in range(10)] for _ in range(n)] + st[:cleared_lines[0]] + st[cleared_lines[-1] + 1:], sco, com + 1, dif
     return st, sco, 0, dif
-
 
 # -----------------------------------------------------
 # MOVEMENT
@@ -162,7 +160,6 @@ def drop(coordinates: list[list[int]], st: list[list[str]], scored: bool) -> tup
         coordinates = [[k[0] + 1, k[1]] for k in coordinates]
     return coordinates, st
 
-
 # -----------------------------------------------------
 # OTHER
 
@@ -173,10 +170,11 @@ def store(coordinates: list[list[int]], stored: str, cur: str, lim: bool, st: li
         return coordinates, stored, cur, lim, st
     for k in coordinates:
         st[k[0]][k[1]] = " "
-    count1 = [i[0] for i in default_coordinates[cur]].count(1)
-    count2 = [i[0] for i in default_coordinates[cur]].count(2)
-    left_screen[10] = [*f'{" "*(6)}{f"{piece_colors[cur]}@\033[0m"*2*count1}{" "*(14-count1)}']
-    left_screen[11] = [*f'{" "*(6)}{f"{piece_colors[cur]}@\033[0m"*2*count2}{" "*(14-count2)}']
+    left_screen[10] = [*"                    "]
+    left_screen[11] = [*"                    "]
+    for k in default_coordinates[cur]:
+        left_screen[9+k[0]][(k[1]*2)-1] = f"{piece_colors[cur]}@\033[0m"
+        left_screen[9+k[0]][k[1]*2] = f"{piece_colors[cur]}@\033[0m"
     if stored == "":
         new = generate()
         return default_coordinates[new], cur, new, True, st
@@ -198,28 +196,36 @@ def do_nothing(coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[
 
 
 def menu(st: list[list[str]], menu_type: str, sco: int, is_new: bool) -> None:
+    global left_screen, right_screen, speed_incr, difficulty
     if is_new:
         clear()
         print("~" * 24)
-        for k in st[2:9]:
+        for k in range(2,9):
             print("||", end="")
-            for n in k:
-                print(n * 2, end="")
+            for n in range(10):
+                print(st[k][n] * 2, end="")
             print("||")
         print("#" * 24)
         if menu_type == "pause":
             print("#     Game Paused      #")
             print("# Continue:  Press Esc #")
-        else:
+            print("# New Game:  Press R   #")
+            print("# Quit:      Press Q   #")
+        elif menu_type == "over":
             print("#      Game Over!      #")
             print(f"# Score: {sco}{" " * (14 - len(str(sco)))}#")
-        print("# New Game:  Press R   #")
-        print("# Quit:      Press Q   #")
+            print("# New Game:  Press R   #")
+            print("# Quit:      Press Q   #")
+        elif menu_type == "start":
+            print("# Choose a difficulty: #")
+            print("# Easy: Press 1        #")
+            print("# Medium: Press 2      #")
+            print("# Hard: Press 3        #")
         print("#" * 24)
-        for k in st[15:]:
+        for k in range(15,22):
             print("||", end="")
-            for n in k:
-                print(n * 2, end="")
+            for n in range(10):
+                print(st[k][n] * 2, end="")
             print("||")
         print("~" * 24)
     key = ord(getch())
@@ -230,13 +236,37 @@ def menu(st: list[list[str]], menu_type: str, sco: int, is_new: bool) -> None:
         return
     elif key == 113:  # "q"
         quit(0)
+    elif menu_type == "start":
+        if key == ord("1"):
+            difficulty = 1
+            speed_incr = 75
+        elif key == ord("2"):
+            difficulty = 2
+            speed_incr = 100
+        elif key == ord("3"):
+            difficulty = 3
+            speed_incr = 125
+        else:
+            menu(st, menu_type, sco, is_new=False)
+        main()
+        return
     else:
         menu(st, menu_type, sco, is_new=False)
 
+def next_block() -> str:
+    global upcoming
+    new_block = upcoming.pop(0)
+    upcoming.append(generate())
+    for i, k in enumerate(upcoming):
+        right_screen[4+i*5] = [*"                    "]
+        right_screen[5+i*5] = [*"                    "]
+        for j in default_coordinates[k]:
+            right_screen[3+i*5+j[0]][(j[1]*2)-1] = f"{piece_colors[k]}@\033[0m"
+            right_screen[3+i*5+j[0]][j[1]*2] = f"{piece_colors[k]}@\033[0m"
+    return new_block
 
 # -----------------------------------------------------
 # BLOCK DATA
-
 
 default_coordinates: dict[str, list[list[int]]] = {
     "Z": [[1, 3], [1, 4], [2, 4], [2, 5]],
@@ -303,8 +333,16 @@ rotation_table: dict[str, tuple] = {
         ),
 }
 
+# -----------------------------------------------------
+# GAME DATA
+
+upcoming: list[str] = [generate() for _ in range(4)]
+
+difficulty: int = 2
+speed_incr: int = 100
 game_score: int = 0
-left_screen: list[list[str]] =[[*"                    "],
+
+left_screen: list[list[str]] = [[*"                    "],
                                 [*"                    "],
                                 [*"                    "],
                                 [*"       SCORE:       "],
@@ -326,23 +364,24 @@ left_screen: list[list[str]] =[[*"                    "],
                                 [*" -C: Store          "],
                                 [*" -Space: Quick Drop "],
                                 [*" -Esc: Pause        "],]
-right_screen: list[list[str]] = [[*"                    "],
+right_screen: list[list[str]] =[[*"                    "],
                                 [*"                    "],
                                 [*"     UPCOMING:      "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
+                                [*"                    "],
                                 [*"~~~~~~~~~~~~~~~~~~~~"],
                                 [*"                    "],
                                 [*"                    "],
                                 [*"                    "],
                                 [*"                    "],
+                                [*"~~~~~~~~~~~~~~~~~~~~"],
                                 [*"                    "],
                                 [*"                    "],
                                 [*"                    "],
                                 [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
+                                [*"~~~~~~~~~~~~~~~~~~~~"],
                                 [*"                    "],
                                 [*"                    "],
                                 [*"                    "],
@@ -352,27 +391,26 @@ right_screen: list[list[str]] = [[*"                    "],
 # -----------------------------------------------------
 # DRIVER CODE
 
-
 def main():
-    global game_score, right_screen, left_screen
+    global game_score, right_screen, left_screen, upcoming
     combo: int = 0
     difficult: bool = False
     game_state: list[list[str]] = [[" " for _ in range(10)] for _ in range(22)]
     stored: str = ""
     while True:
         left_screen[4] = [*f"{" "*(9-len(str(game_score))//2)}{str(game_score)}{" "*(12-len(str(game_score))//2)}"]
-        current: str = generate()
+        current: str = next_block()
         cur_coords: list[list[int]] = default_coordinates[current]
         for i in game_state[1][3:6]:
             if "#" in i:
                 menu(game_state, "over", game_score, is_new=True)
-        clock: float = 0
+        clock: int = 0
         rotation_state: int = 0
         store_limit: bool = False
         cur_coords, game_state = refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
         while True:
             x_coords: list[int] = [i[1] for i in cur_coords]
-            clock += 0.01
+            clock += speed_incr
             if kbhit():  # check if there is keyboard input
                 keycode: int = ord(getch())  # get keyboard input
                 if keycode == 72 and current != "O":  # Up arrow
@@ -410,7 +448,7 @@ def main():
                     break
             else:
                 sleep(0.01)
-                if int(clock) == 1:
+                if clock == 10000:
                     if not collision_down(cur_coords, game_state):
                         clock = 0
                         cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state, False), current, game_state)
@@ -421,4 +459,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    menu([[" " for _ in range(10)] for _ in range(22)], "start", 0, True)
