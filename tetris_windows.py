@@ -3,6 +3,7 @@ from time import sleep
 from random import choice
 from msvcrt import getch, kbhit
 
+
 # -----------------------------------------------------
 # CHECKS
 
@@ -18,6 +19,7 @@ def collision_side(val: int, coordinates: list[list[int]], st: list[list[str]]) 
         if "#" in st[k[0]][k[1] + val]:
             return True
     return False
+
 
 # -----------------------------------------------------
 # PRINT
@@ -40,7 +42,7 @@ def draw(st: list[list[str]]) -> None:  # st == middle screen
         print("||", end="")
         for j in range(20):
             print(left_screen[i][j], end="")
-        
+
         print("||", end="")
         for j in range(10):
             print(st[i][j] * 2, end="")
@@ -53,10 +55,11 @@ def draw(st: list[list[str]]) -> None:  # st == middle screen
     print("~" * 20, end="||")
     print("~" * 20, end="||\n")
 
+
 def refresh(coordinates: list[list[int]], func: tuple[list[list[int]], list[list[str]]], cur: str, st: list[list[str]]) \
         -> tuple[list[list[int]], list[list[str]]]:
     preview = "\033[38;5;244m\033[48;5;244m"
-    
+
     for k in coordinates:
         st[k[0]][k[1]] = " "  # clear previous coordinates
     coordinates, st = func
@@ -66,7 +69,7 @@ def refresh(coordinates: list[list[int]], func: tuple[list[list[int]], list[list
     for k in coordinates:
         st[k[0]][k[1]] = f"{piece_colors[cur]}@\033[0m"  # draw new piece
     draw(st)
-    
+
     if preview_coordinates != coordinates:
         for k in preview_coordinates:
             st[k[0]][k[1]] = " "
@@ -89,7 +92,7 @@ def line_clear(st: list[list[str]], sco: int, com: int, dif: bool) -> tuple[list
                     st[k][q] = " "
                 cleared_lines.append(k)
     n = len(cleared_lines)
-    speed_incr += n*difficulty
+    speed_incr += n * difficulty
     if n > 0:
         act_sco = points[n - 1] + (50 * com)
         if dif:
@@ -101,6 +104,7 @@ def line_clear(st: list[list[str]], sco: int, com: int, dif: bool) -> tuple[list
         sco += act_sco
         return [[" " for _ in range(10)] for _ in range(n)] + st[:cleared_lines[0]] + st[cleared_lines[-1] + 1:], sco, com + 1, dif
     return st, sco, 0, dif
+
 
 # -----------------------------------------------------
 # MOVEMENT
@@ -139,26 +143,30 @@ def rotate(coordinates: list[list[int]], cur: str, rot: int, st: list[list[str]]
     return new_coordinates, st
 
 
-def move_side(val: int, coordinates: list[list[int]], st: list[list[str]]) -> tuple[list[list[int]], list[list[str]]]:
+def move_side(val: int, coordinates: list[list[int]], st: list[list[str]]) \
+        -> tuple[list[list[int]], list[list[str]]]:
     if not collision_side(val, coordinates, st):
         coordinates = [[k[0], k[1] + val] for k in coordinates]
     return coordinates, st
 
 
-def move_down(coordinates: list[list[int]], st: list[list[str]], scored: bool) -> tuple[list[list[int]], list[list[str]]]:
+def move_down(coordinates: list[list[int]], st: list[list[str]], scored: bool) \
+        -> tuple[list[list[int]], list[list[str]]]:
     global game_score
     if scored:
         game_score += 1
     return [[k[0] + 1, k[1]] for k in coordinates], st
 
 
-def drop(coordinates: list[list[int]], st: list[list[str]], scored: bool) -> tuple[list[list[int]], list[list[str]]]:
+def drop(coordinates: list[list[int]], st: list[list[str]], scored: bool) \
+        -> tuple[list[list[int]], list[list[str]]]:
     global game_score
     while not collision_down(coordinates, st):
         if scored:
             game_score += 2
         coordinates = [[k[0] + 1, k[1]] for k in coordinates]
     return coordinates, st
+
 
 # -----------------------------------------------------
 # OTHER
@@ -173,8 +181,8 @@ def store(coordinates: list[list[int]], stored: str, cur: str, lim: bool, st: li
     left_screen[10] = [*"                    "]
     left_screen[11] = [*"                    "]
     for k in default_coordinates[cur]:
-        left_screen[9+k[0]][(k[1]*2)-1] = f"{piece_colors[cur]}@\033[0m"
-        left_screen[9+k[0]][k[1]*2] = f"{piece_colors[cur]}@\033[0m"
+        left_screen[9 + k[0]][(k[1] * 2) - 1] = f"{piece_colors[cur]}@\033[0m"
+        left_screen[9 + k[0]][k[1] * 2] = f"{piece_colors[cur]}@\033[0m"
     if stored == "":
         new = generate()
         return default_coordinates[new], cur, new, True, st
@@ -200,7 +208,7 @@ def menu(st: list[list[str]], menu_type: str, sco: int, is_new: bool) -> None:
     if is_new:
         clear()
         print("~" * 24)
-        for k in range(2,9):
+        for k in range(2, 9):
             print("||", end="")
             for n in range(10):
                 print(st[k][n] * 2, end="")
@@ -222,7 +230,7 @@ def menu(st: list[list[str]], menu_type: str, sco: int, is_new: bool) -> None:
             print("# Medium: Press 2      #")
             print("# Hard: Press 3        #")
         print("#" * 24)
-        for k in range(15,22):
+        for k in range(15, 22):
             print("||", end="")
             for n in range(10):
                 print(st[k][n] * 2, end="")
@@ -253,17 +261,19 @@ def menu(st: list[list[str]], menu_type: str, sco: int, is_new: bool) -> None:
     else:
         menu(st, menu_type, sco, is_new=False)
 
+
 def next_block() -> str:
     global upcoming
     new_block = upcoming.pop(0)
     upcoming.append(generate())
     for i, k in enumerate(upcoming):
-        right_screen[4+i*5] = [*"                    "]
-        right_screen[5+i*5] = [*"                    "]
+        right_screen[4 + i * 5] = [*"                    "]
+        right_screen[5 + i * 5] = [*"                    "]
         for j in default_coordinates[k]:
-            right_screen[3+i*5+j[0]][(j[1]*2)-1] = f"{piece_colors[k]}@\033[0m"
-            right_screen[3+i*5+j[0]][j[1]*2] = f"{piece_colors[k]}@\033[0m"
+            right_screen[3 + i * 5 + j[0]][(j[1] * 2) - 1] = f"{piece_colors[k]}@\033[0m"
+            right_screen[3 + i * 5 + j[0]][j[1] * 2] = f"{piece_colors[k]}@\033[0m"
     return new_block
+
 
 # -----------------------------------------------------
 # BLOCK DATA
@@ -363,30 +373,31 @@ left_screen: list[list[str]] = [[*"                    "],
                                 [*" -Down arrow: Drop  "],
                                 [*" -C: Store          "],
                                 [*" -Space: Quick Drop "],
-                                [*" -Esc: Pause        "],]
-right_screen: list[list[str]] =[[*"                    "],
-                                [*"                    "],
-                                [*"     UPCOMING:      "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"~~~~~~~~~~~~~~~~~~~~"],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"~~~~~~~~~~~~~~~~~~~~"],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"~~~~~~~~~~~~~~~~~~~~"],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],]
+                                [*" -Esc: Pause        "], ]
+right_screen: list[list[str]] = [[*"                    "],
+                                 [*"                    "],
+                                 [*"     UPCOMING:      "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"~~~~~~~~~~~~~~~~~~~~"],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"~~~~~~~~~~~~~~~~~~~~"],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"~~~~~~~~~~~~~~~~~~~~"],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "],
+                                 [*"                    "], ]
+
 
 # -----------------------------------------------------
 # DRIVER CODE
@@ -398,7 +409,8 @@ def main():
     game_state: list[list[str]] = [[" " for _ in range(10)] for _ in range(22)]
     stored: str = ""
     while True:
-        left_screen[4] = [*f"{" "*(9-len(str(game_score))//2)}{str(game_score)}{" "*(12-len(str(game_score))//2)}"]
+        left_screen[4] = [
+            *f"{" " * (9 - len(str(game_score)) // 2)}{str(game_score)}{" " * (12 - len(str(game_score)) // 2)}"]
         current: str = next_block()
         cur_coords: list[list[int]] = default_coordinates[current]
         for i in game_state[1][3:6]:
@@ -426,32 +438,38 @@ def main():
                                                          game_state)
                 elif keycode == 77:  # Right arrow
                     if 9 not in x_coords:
-                        cur_coords, game_state = refresh(cur_coords, move_side(1, cur_coords, game_state), current, game_state)
+                        cur_coords, game_state = refresh(cur_coords, move_side(1, cur_coords, game_state), current,
+                                                         game_state)
                 elif keycode == 80:  # Down arrow
                     if not collision_down(cur_coords, game_state):
-                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state, True), current, game_state)
+                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state, True), current,
+                                                         game_state)
                     else:
                         game_state = set_down(cur_coords, current, game_state)
                         game_state, game_score, combo, difficult = line_clear(game_state, game_score, combo, difficult)
                         break
                 elif keycode == 99:  # "c"
-                    cur_coords, stored, current, store_limit, game_state = store(cur_coords, stored, current, store_limit, game_state)
+                    cur_coords, stored, current, store_limit, game_state = store(cur_coords, stored, current,
+                                                                                 store_limit, game_state)
                     rotation_state = 0
                     refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
                 elif keycode == 27:  # "Esc"
                     menu(game_state, "pause", game_score, is_new=True)
-                    cur_coords, game_state = refresh(cur_coords, do_nothing(cur_coords, game_state), current, game_state)
+                    cur_coords, game_state = refresh(cur_coords, do_nothing(cur_coords, game_state), current,
+                                                     game_state)
                 elif keycode == 32:  # Space
-                    cur_coords, game_state = refresh(cur_coords, drop(cur_coords, game_state, True), current, game_state)
+                    cur_coords, game_state = refresh(cur_coords, drop(cur_coords, game_state, True), current,
+                                                     game_state)
                     game_state = set_down(cur_coords, current, game_state)
                     game_state, game_score, combo, difficult = line_clear(game_state, game_score, combo, difficult)
                     break
             else:
                 sleep(0.01)
-                if clock == 10000:
+                if clock >= 10000:
                     if not collision_down(cur_coords, game_state):
                         clock = 0
-                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state, False), current, game_state)
+                        cur_coords, game_state = refresh(cur_coords, move_down(cur_coords, game_state, False), current,
+                                                         game_state)
                     else:
                         game_state = set_down(cur_coords, current, game_state)
                         game_state, game_score, combo, difficult = line_clear(game_state, game_score, combo, difficult)
