@@ -5,33 +5,30 @@ if name == 'nt':
     from msvcrt import getch, kbhit
 else:
     from sys import stdin
-    from termios import tcgetattr, tcsetattr, TCSADRAIN
+    from termios import tcgetattr, tcsetattr, ICANON, ECHO, TCSAFLUSH, TCSADRAIN
     from tty import setcbreak
     from select import select
     def kbhit():
-        return select([stdin], [], [], 0) == ([stdin], [], [])
-    
+        return select([stdin], [], [], 0)[0] == []
     def getch():
         old_settings = tcgetattr(stdin)
-        try:
-            setcbreak(stdin.fileno())
-            c = stdin.read(1)
-            if c == '\x1b':
-                c2 = stdin.read(2)
-                if c2 == None:
-                    return 27
-                elif c2 == "[A":
-                    return 72
-                elif c2 == "[B":
-                    return 80
-                elif c2 == "[C":
-                    return 77
-                elif c2 == "[D":
-                    return 75
-            else:
-                return ord(c)
-        finally:
-            tcsetattr(stdin, TCSADRAIN, old_settings)
+        new_settings = tcgetattr(stdin)
+        new_settings[3] = (new_settings[3] & ~ICANON & ~ECHO)
+        tcsetattr(stdin.fileno(), TCSAFLUSH, new_settings)
+        setcbreak(stdin.fileno())
+        c = stdin.read(1)
+        if c == '\x1b':
+            c2 = stdin.read(2)
+            if c2 == "[A":
+                return 72
+            elif c2 == "[B":
+                return 80
+            elif c2 == "[C":
+                return 77
+            elif c2 == "[D":
+                return 75
+        else:
+            return ord(c)
 
 # -----------------------------------------------------
 # CHECKS
@@ -296,7 +293,10 @@ def menu(st: list[list[str]], menu_type: str, is_new: bool) -> None:
     global left_screen, right_screen, speed_incr, difficulty, score
     if is_new:
         draw_menu(st, menu_type)
-    key = ord(getch())
+    if name == 'nt':
+        key: int = ord(getch())
+    else:
+        key: int = getch()
     if menu_type == "pause" and key == 27:  # "Esc"
         return
     elif key == ord("r"):
