@@ -1,17 +1,21 @@
 from os import name, system
 from time import sleep
 from random import choice
+
 if name == 'nt':
     from msvcrt import getch, kbhit
 else:
     from sys import stdin
-    from termios import tcgetattr, tcsetattr, ICANON, ECHO, TCSAFLUSH, TCSADRAIN
+    from termios import tcgetattr, tcsetattr, ICANON, ECHO, TCSAFLUSH
     from tty import setcbreak
     from select import select
+
+
     def kbhit():
         return select([stdin], [], [], 0)[0] == []
+
+
     def getch():
-        old_settings = tcgetattr(stdin)
         new_settings = tcgetattr(stdin)
         new_settings[3] = (new_settings[3] & ~ICANON & ~ECHO)
         tcsetattr(stdin.fileno(), TCSAFLUSH, new_settings)
@@ -30,17 +34,18 @@ else:
         else:
             return ord(c)
 
+
 # -----------------------------------------------------
 # CHECKS
 
-def collision_down(cords: list[list[int]], st: list[list[str]]) -> bool:
+def collision_down(cords: list, st: list) -> bool:
     for k in cords:
         if k[0] == 21 or "&" in st[k[0] + 1][k[1]]:
             return True
     return False
 
 
-def collision_side(val: int, cords: list[list[int]], st: list[list[str]]) -> bool:
+def collision_side(val: int, cords: list, st: list) -> bool:
     for k in cords:
         if "&" in st[k[0]][k[1] + val]:
             return True
@@ -57,7 +62,7 @@ def clear() -> None:
         system('clear')
 
 
-def draw(st: list[list[str]]) -> None:  # st == middle screen
+def draw(st: list) -> None:  # st == middle screen
     global right_screen, left_screen, speed_incr
     clear()
     print("||", end="")
@@ -68,7 +73,7 @@ def draw(st: list[list[str]]) -> None:  # st == middle screen
         print("||", end="")
         [print(j, end="") for j in left_screen[i]]
         print("||", end="")
-        [print(j*2, end="") for j in st[i]]
+        [print(j * 2, end="") for j in st[i]]
         print("||", end="")
         [print(j, end="") for j in right_screen[i]]
         print("||")
@@ -78,8 +83,7 @@ def draw(st: list[list[str]]) -> None:  # st == middle screen
     print("~" * 20, end="||\n")
 
 
-def refresh(cords: list[list[int]], func: tuple[list[list[int]], list[list[str]]], cur: str, st: list[list[str]]) \
-        -> tuple[list[list[int]], list[list[str]]]:
+def refresh(cords: list, func: tuple, cur: str, st: list) -> tuple:
     preview = "\033[38;5;244m\033[48;5;244m"
 
     for k in cords:
@@ -98,10 +102,10 @@ def refresh(cords: list[list[int]], func: tuple[list[list[int]], list[list[str]]
     return cords, st
 
 
-def line_clear(st: list[list[str]], sco: int, com: int, dif: bool) -> tuple[list[list[str]], int, int, bool]:
+def line_clear(st: list, sco: int, com: int, dif: bool) -> tuple:
     global speed_incr, difficulty
-    clr_lns: list[int] = []
-    points: tuple[int] = (100, 300, 500, 800)
+    clr_lns: list = []
+    points: tuple = (100, 300, 500, 800)
     for k in range(len(st)):
         if "&" in st[k][0]:
             full = True
@@ -128,7 +132,7 @@ def line_clear(st: list[list[str]], sco: int, com: int, dif: bool) -> tuple[list
     return st, sco, 0, dif
 
 
-def draw_menu(st: list[list[str]], menu_type: str) -> None:
+def draw_menu(st: list, menu_type: str) -> None:
     global left_screen, right_screen, menu_content
     clear()
     print("||", end="")
@@ -138,27 +142,27 @@ def draw_menu(st: list[list[str]], menu_type: str) -> None:
         print("||", end="")
         [print(j, end="") for j in left_screen[i]]
         print("||", end="")
-        [print(j*2, end="") for j in st[i]]
+        [print(j * 2, end="") for j in st[i]]
         print("||", end="")
         [print(j, end="") for j in right_screen[i]]
         print("||")
-    for i in range(9,15):
+    for i in range(9, 15):
         print("||", end="")
         [print(j, end="") for j in left_screen[i]]
         if menu_type == "over" and i == 11:
             score_len = len(str(score))
-            left_offset = (5 - max(0, (score_len) - 9))
+            left_offset = (5 - max(0, score_len - 9))
             right_offset = 20 - (left_offset + score_len + 5)
             print(f'! Score:{" " * left_offset}{score}{" " * right_offset}!', end="")
         else:
-            print(menu_content[menu_type][i-9], end="")
+            print(menu_content[menu_type][i - 9], end="")
         [print(j, end="") for j in right_screen[i]]
         print("||")
     for i in range(15, 22):
         print("||", end="")
         [print(j, end="") for j in left_screen[i]]
         print("||", end="")
-        [print(j*2, end="") for j in st[i]]
+        [print(j * 2, end="") for j in st[i]]
         print("||", end="")
         [print(j, end="") for j in right_screen[i]]
         print("||")
@@ -168,19 +172,19 @@ def draw_menu(st: list[list[str]], menu_type: str) -> None:
     return
 
 
-menu_content: dict[str, tuple[str]] = {
-    "start":("&" * 24,
-             "! Choose a difficulty: !",
-             "! Easy: Press 1        !",
-             "! Medium: Press 2      !",
-             "! Hard: Press 3        !",
-             "&" * 24),
-    "pause":("&" * 24,
-             "!     Game Paused      !",
-             "! Continue:  Press Esc !",
-             "! New Game:  Press R   !",
-             "! Quit:      Press Q   !",
-             "&" * 24),
+menu_content: dict = {
+    "start": ("&" * 24,
+              "! Choose a difficulty: !",
+              "! Easy: Press 1        !",
+              "! Medium: Press 2      !",
+              "! Hard: Press 3        !",
+              "&" * 24),
+    "pause": ("&" * 24,
+              "!     Game Paused      !",
+              "! Continue:  Press P   !",
+              "! New Game:  Press R   !",
+              "! Quit:      Press Q   !",
+              "&" * 24),
     "over": ("&" * 24,
              "!      Game Over!      !",
              "! Score:     0         !",
@@ -189,13 +193,13 @@ menu_content: dict[str, tuple[str]] = {
              "&" * 24)
 }
 
+
 # -----------------------------------------------------
 # MOVEMENT
 
-def rotate(cords: list[list[int]], cur: str, rot: int, st: list[list[str]]) \
-        -> tuple[list[list[int]], list[list[str]]]:
-    old_cords: list[list[int]] = cords
-    x_cords: list[int] = [i[1] for i in cords]
+def rotate(cords: list, cur: str, rot: int, st: list) -> tuple:
+    old_cords: list = cords
+    x_cords: list = [i[1] for i in cords]
     if cur == "I":
         xcord_I: int = x_cords[0]
         if xcord_I == x_cords[3]:
@@ -225,23 +229,20 @@ def rotate(cords: list[list[int]], cur: str, rot: int, st: list[list[str]]) \
     return ncords, st
 
 
-def move_side(val: int, cords: list[list[int]], st: list[list[str]]) \
-        -> tuple[list[list[int]], list[list[str]]]:
+def move_side(val: int, cords: list, st: list) -> tuple:
     if not collision_side(val, cords, st):
         cords = [[k[0], k[1] + val] for k in cords]
     return cords, st
 
 
-def move_down(cords: list[list[int]], st: list[list[str]], scored: bool) \
-        -> tuple[list[list[int]], list[list[str]]]:
+def move_down(cords: list, st: list, scored: bool) -> tuple:
     global score
     if scored:
         score += 1
     return [[k[0] + 1, k[1]] for k in cords], st
 
 
-def drop(cords: list[list[int]], st: list[list[str]], scored: bool) \
-        -> tuple[list[list[int]], list[list[str]]]:
+def drop(cords: list, st: list, scored: bool) -> tuple:
     global score
     while not collision_down(cords, st):
         if scored:
@@ -253,8 +254,7 @@ def drop(cords: list[list[int]], st: list[list[str]], scored: bool) \
 # -----------------------------------------------------
 # OTHER
 
-def store(cords: list[list[int]], stored: str, cur: str, lim: bool, st: list[list[str]]) \
-        -> tuple[list[list[int]], str, str, bool, list[list[str]]]:
+def store(cords: list, stored: str, cur: str, lim: bool, st: list) -> tuple:
     global right_screen
     if lim:
         return cords, stored, cur, lim, st
@@ -266,7 +266,7 @@ def store(cords: list[list[int]], stored: str, cur: str, lim: bool, st: list[lis
     # Add current stored piece to left_screen 
     for k in default_cords[cur]:
         left_screen[9 + k[0]][k[1] * 2] = f"{piece_colors[cur]}@\033[0m"
-        left_screen[9 + k[0]][k[1] * 2+1] = f"{piece_colors[cur]}@\033[0m"
+        left_screen[9 + k[0]][k[1] * 2 + 1] = f"{piece_colors[cur]}@\033[0m"
     if stored == "":
         new = generate()
         return default_cords[new], cur, new, True, st
@@ -277,19 +277,17 @@ def generate() -> str:
     return choice(list(default_cords.keys()))
 
 
-def set_down(cords: list[list[int]], cur: str, st: list[list[str]]) \
-        -> list[list[str]]:
+def set_down(cords: list, cur: str, st: list) -> list:
     for k in cords:
         st[k[0]][k[1]] = f"{piece_colors[cur]}&\033[0m"
     return st
 
 
-def do_nothing(cords: list[list[int]], st: list[list[str]]) \
-        -> tuple[list[list[int]], list[list[str]]]:
+def do_nothing(cords: list, st: list) -> tuple:
     return cords, st
 
 
-def menu(st: list[list[str]], menu_type: str, is_new: bool) -> None:
+def menu(st: list, menu_type: str, is_new: bool) -> None:
     global left_screen, right_screen, speed_incr, difficulty, score
     if is_new:
         draw_menu(st, menu_type)
@@ -297,7 +295,7 @@ def menu(st: list[list[str]], menu_type: str, is_new: bool) -> None:
         key: int = ord(getch())
     else:
         key: int = getch()
-    if menu_type == "pause" and key == 27:  # "Esc"
+    if menu_type == "pause" and key == ord("p"):
         return
     elif key == ord("r"):
         score = 0
@@ -341,7 +339,7 @@ def next_block() -> str:
 # -----------------------------------------------------
 # BLOCK DATA
 
-default_cords: dict[str, list[list[int]]] = {
+default_cords: dict = {
     # These values indicate where a piece will generate, piece[[fragment[y][x]]*4]
     "Z": [[1, 3], [1, 4], [2, 4], [2, 5]],
     "S": [[1, 4], [1, 5], [2, 3], [2, 4]],
@@ -350,10 +348,10 @@ default_cords: dict[str, list[list[int]]] = {
     "T": [[1, 4], [2, 3], [2, 4], [2, 5]],
     "I": [[2, 3], [2, 4], [2, 5], [2, 6]],
     "J": [[1, 3], [2, 3], [2, 4], [2, 5]]
-    
+
 }
 
-piece_colors: dict[str, str] = {
+piece_colors: dict = {
     # ANSI Escape Codes corresponding to different colors
     "Z": '\033[91;101m',
     "S": '\033[92;102m',
@@ -364,7 +362,7 @@ piece_colors: dict[str, str] = {
     "J": '\033[38;5;202m\033[48;5;202m'  # This one is longer because there is no orange in the default colors
 }
 
-rot_tbl: dict[str, tuple] = {
+rot_tbl: dict = {
     # These values indicate how much to move each fragment of the piece when rotating, piece((fragment(y)(x))*4)
     "Z":
         (
@@ -414,13 +412,13 @@ rot_tbl: dict[str, tuple] = {
 # -----------------------------------------------------
 # GAME DATA
 
-upcoming: list[str] = [generate() for _ in range(4)]
+upcoming: list = [generate() for _ in range(4)]
 
 difficulty: int = 2
 speed_incr: int = 100
-score: int = 0 # Max score without bugs: 99_999_999_999_999
+score: int = 0  # Max score without bugs: 99_999_999_999_999
 
-left_screen: list[list[str]] = [[*"                    "],
+left_screen: list = [[*"                    "],
                                 [*"                    "],
                                 [*"                    "],
                                 [*"       SCORE:       "],
@@ -441,8 +439,8 @@ left_screen: list[list[str]] = [[*"                    "],
                                 [*" -Down arrow: Drop  "],
                                 [*" -C: Store          "],
                                 [*" -Space: Quick Drop "],
-                                [*" -Esc: Pause        "], ]
-right_screen: list[list[str]] = [[*"                    "],
+                                [*" -P: Pause          "], ]
+right_screen: list = [[*"                    "],
                                  [*"                    "],
                                  [*"     UPCOMING:      "],
                                  [*"                    "],
@@ -474,16 +472,16 @@ def main():
     global score, right_screen, left_screen, upcoming
     combo: int = 0
     difficult: bool = False
-    state: list[list[str]] = [[" " for _ in range(10)] for _ in range(22)]
+    state: list = [[" " for _ in range(10)] for _ in range(22)]
     stored: str = ""
     while True:
         sscore = str(score)
         score_len = len(sscore)
-        left_offset = 10 - (score_len>2)*(score_len//2)
-        right_offset = 20 - (left_offset + score_len) 
+        left_offset = 10 - (score_len > 2) * (score_len // 2)
+        right_offset = 20 - (left_offset + score_len)
         left_screen[4] = [*f'{" " * left_offset}{sscore}{" " * right_offset}']
         c_piece: str = next_block()
-        c_cords: list[list[int]] = default_cords[c_piece]
+        c_cords: list = default_cords[c_piece]
         for i in state[1][3:6]:
             if "&" in i:
                 menu(state, "over", is_new=True)
@@ -493,7 +491,7 @@ def main():
         store_lim: bool = False
         c_cords, state = refresh(c_cords, do_nothing(c_cords, state), c_piece, state)
         while True:
-            x_cor: list[int] = [i[1] for i in c_cords]
+            x_cor: list = [i[1] for i in c_cords]
             clock += speed_incr
             if kbhit():  # check if there is keyboard input
                 if name == 'nt':
@@ -522,7 +520,7 @@ def main():
                     c_cords, stored, c_piece, store_lim, state = store(c_cords, stored, c_piece, store_lim, state)
                     rot_state = 0
                     refresh(c_cords, do_nothing(c_cords, state), c_piece, state)
-                elif keycode == 27:  # "Esc"
+                elif keycode == ord("p"):
                     menu(state, "pause", is_new=True)
                     c_cords, state = refresh(c_cords, do_nothing(c_cords, state), c_piece, state)
                 elif keycode == ord(" "):
