@@ -2,9 +2,9 @@ from os import name, system
 from time import sleep
 from random import choice
 
-if name == 'nt':
+if name == 'nt':  # Windows
     from msvcrt import getch, kbhit
-else:
+else:  # Linux
     from sys import stdin
     from termios import tcgetattr, tcsetattr, ICANON, ECHO, TCSAFLUSH
     from tty import setcbreak
@@ -12,27 +12,31 @@ else:
 
 
     def kbhit():
-        return select([stdin], [], [], 0)[0] == []
+        return select([stdin], [], [], 0)[0] == []  # Check if keyboard input is empty
 
 
     def getch():
-        new_settings = tcgetattr(stdin)
-        new_settings[3] = (new_settings[3] & ~ICANON & ~ECHO)
-        tcsetattr(stdin.fileno(), TCSAFLUSH, new_settings)
+        old_settings = tcgetattr(stdin)
+        new_settings = old_settings
+        new_settings[3] = (new_settings[3] & ~ICANON & ~ECHO)  # Turn off key echoing
+        tcsetattr(stdin.fileno(), TCSAFLUSH, new_settings)  
         setcbreak(stdin.fileno())
-        c = stdin.read(1)
-        if c == '\x1b':
-            c2 = stdin.read(2)
-            if c2 == "[A":
-                return 72
-            elif c2 == "[B":
-                return 80
-            elif c2 == "[C":
-                return 77
-            elif c2 == "[D":
-                return 75
-        else:
-            return ord(c)
+        try:
+            c = stdin.read(1)
+            if c == '\x1b':
+                c2 = stdin.read(2)
+                if c2 == "[A":  # Up arrow
+                    return 72
+                elif c2 == "[B":  # Down arrow
+                    return 80
+                elif c2 == "[C":  # Right arrow
+                    return 77
+                elif c2 == "[D":  # Left arrow
+                    return 75
+            else:
+                return ord(c)
+        finally:
+            tcsetattr(stdin.fileno(), TCSAFLUSH, old_settings)
 
 
 # -----------------------------------------------------
@@ -65,22 +69,22 @@ def clear() -> None:
 def draw(st: list) -> None:  # st == middle screen
     global right_screen, left_screen, speed_incr
     clear()
-    print("||", end="")
-    print("~" * 20, end="||")
-    print("~" * 20, end="||")
-    print("~" * 20, end="||\n")
+    print(y_border, end="")
+    print(x_border * 20, end=y_border)
+    print(x_border * 20, end=y_border)
+    print(x_border * 20, end=f"{y_border}\n")
     for i in range(2, 22):
-        print("||", end="")
+        print(y_border, end="")
         [print(j, end="") for j in left_screen[i]]
-        print("||", end="")
+        print(y_border, end="")
         [print(j * 2, end="") for j in st[i]]
-        print("||", end="")
+        print(y_border, end="")
         [print(j, end="") for j in right_screen[i]]
-        print("||")
-    print("||", end="")
-    print("~" * 20, end="||")
-    print("~" * 20, end="||")
-    print("~" * 20, end="||\n")
+        print(y_border)
+    print(y_border, end="")
+    print(x_border * 20, end=y_border)
+    print(x_border * 20, end=y_border)
+    print(x_border * 20, end=f"{y_border}\n")
 
 
 def refresh(cords: list, func: tuple, cur: str, st: list) -> tuple:
@@ -108,7 +112,7 @@ def line_clear(st: list, sco: int, com: int, dif: bool) -> tuple:
     points: tuple = (100, 300, 500, 800)
     for k in range(len(st)):
         if "&" in st[k][0]:
-            full = True
+            full: bool = True
             for p in range(1, len(st[k])):
                 if "&" not in st[k][p]:
                     full = False
@@ -128,70 +132,14 @@ def line_clear(st: list, sco: int, com: int, dif: bool) -> tuple:
         else:
             dif = False
         sco += int(act_sco)
-        return [[" " for _ in range(10)] for _ in range(n)] + st[:clr_lns[0]] + st[clr_lns[-1] + 1:], sco, com + 1, dif
+        st_copy = [[" " for j in range(10)] for i in range(n)]  # Add new empty lines on top of after-clear state
+        st_copy += st[:clr_lns[0]]  # Copy existing lines from existing state, up to the first cleared line-1
+        for k in range(n-1):
+            st_copy += st[clr_lns[k]+1:clr_lns[k+1]]  # Copy all lines between cleared lines
+        st_copy += st[clr_lns[-1]+1:]  # Copy existing lines from existing state, down from last cleared line+1
+        st = st_copy  # Replace state with state after clear
+        return st, sco, com + 1, dif
     return st, sco, 0, dif
-
-
-def draw_menu(st: list, menu_type: str) -> None:
-    global left_screen, right_screen, menu_content
-    clear()
-    print("||", end="")
-    [print("~" * 20, end="||") for _ in range(3)]
-    print()
-    for i in range(2, 9):
-        print("||", end="")
-        [print(j, end="") for j in left_screen[i]]
-        print("||", end="")
-        [print(j * 2, end="") for j in st[i]]
-        print("||", end="")
-        [print(j, end="") for j in right_screen[i]]
-        print("||")
-    for i in range(9, 15):
-        print("||", end="")
-        [print(j, end="") for j in left_screen[i]]
-        if menu_type == "over" and i == 11:
-            score_len = len(str(score))
-            left_offset = (5 - max(0, score_len - 9))
-            right_offset = 20 - (left_offset + score_len + 5)
-            print(f'! Score:{" " * left_offset}{score}{" " * right_offset}!', end="")
-        else:
-            print(menu_content[menu_type][i - 9], end="")
-        [print(j, end="") for j in right_screen[i]]
-        print("||")
-    for i in range(15, 22):
-        print("||", end="")
-        [print(j, end="") for j in left_screen[i]]
-        print("||", end="")
-        [print(j * 2, end="") for j in st[i]]
-        print("||", end="")
-        [print(j, end="") for j in right_screen[i]]
-        print("||")
-    print("||", end="")
-    [print("~" * 20, end="||") for _ in range(3)]
-    print()
-    return
-
-
-menu_content: dict = {
-    "start": ("&" * 24,
-              "! Choose a difficulty: !",
-              "! Easy: Press 1        !",
-              "! Medium: Press 2      !",
-              "! Hard: Press 3        !",
-              "&" * 24),
-    "pause": ("&" * 24,
-              "!     Game Paused      !",
-              "! Continue:  Press P   !",
-              "! New Game:  Press R   !",
-              "! Quit:      Press Q   !",
-              "&" * 24),
-    "over": ("&" * 24,
-             "!      Game Over!      !",
-             "! Score:     0         !",
-             "! New Game:  Press R   !",
-             "! Quit:      Press Q   !",
-             "&" * 24)
-}
 
 
 # -----------------------------------------------------
@@ -252,6 +200,109 @@ def drop(cords: list, st: list, scored: bool) -> tuple:
 
 
 # -----------------------------------------------------
+# MENU
+
+
+menu_content: dict = {
+    "start": ("&" * 24,
+              "! Choose a difficulty: !",
+              "! Easy:   Press 1      !",
+              "! Medium: Press 2      !",
+              "! Hard:   Press 3      !",
+              "&" * 24),
+    "pause": ("&" * 24,
+              "!     Game Paused      !",
+              "! Continue:  Press P   !",
+              "! New Game:  Press R   !",
+              "! Quit:      Press Q   !",
+              "&" * 24),
+    "over": ("&" * 24,
+             "!      Game Over!      !",
+             "! Score:     0         !",
+             "! New Game:  Press R   !",
+             "! Quit:      Press Q   !",
+             "&" * 24)
+}
+
+
+def menu(st: list, menu_type: str, is_new: bool) -> None:
+    global left_screen, right_screen, score, upcoming
+    if is_new:
+        if menu_type == "start":
+            set_default_values()
+        draw_menu(st, menu_type)
+    if name == 'nt':
+        key: int = ord(getch())
+    else:
+        key: int = getch()
+    if menu_type == "pause" and key == ord("p"):
+        return
+    elif key == ord("r"):
+        menu([[" " for j in range(10)] for i in range(22)], "start", True)
+        return
+    elif key == ord("q"):
+        quit(0)
+    elif menu_type == "start":
+        diff: int
+        spd_inc: int
+        if key == ord("1"):
+            diff = 1
+            spd_inc = 75
+        elif key == ord("2"):
+            diff = 2
+            spd_inc = 100
+        elif key == ord("3"):
+            diff = 3
+            spd_inc = 125
+        else:
+            menu(st, menu_type, is_new=False)
+        set_default_values(diff, spd_inc)
+        main()
+        return
+    else:
+        menu(st, menu_type, is_new=False)
+
+
+def draw_menu(st: list, menu_type: str) -> None:
+    global left_screen, right_screen, menu_content
+    clear()
+    print(y_border, end="")
+    [print(x_border * 20, end=y_border) for _ in range(3)]
+    print()
+    for i in range(2, 9):
+        print(y_border, end="")
+        [print(j, end="") for j in left_screen[i]]
+        print(y_border, end="")
+        [print(j * 2, end="") for j in st[i]]
+        print(y_border, end="")
+        [print(j, end="") for j in right_screen[i]]
+        print(y_border)
+    for i in range(9, 15):
+        print(y_border, end="")
+        [print(j, end="") for j in left_screen[i]]
+        if menu_type == "over" and i == 11:
+            score_len = len(str(score))
+            left_offset = (5 - max(0, score_len - 9))
+            right_offset = 20 - (left_offset + score_len + 5)
+            print(f'! Score:{" " * left_offset}{score}{" " * right_offset}!', end="")
+        else:
+            print(menu_content[menu_type][i - 9], end="")
+        [print(j, end="") for j in right_screen[i]]
+        print(y_border)
+    for i in range(15, 22):
+        print(y_border, end="")
+        [print(j, end="") for j in left_screen[i]]
+        print(y_border, end="")
+        [print(j * 2, end="") for j in st[i]]
+        print(y_border, end="")
+        [print(j, end="") for j in right_screen[i]]
+        print(y_border)
+    print(y_border, end="")
+    [print(x_border * 20, end=y_border) for _ in range(3)]
+    print()
+
+
+# -----------------------------------------------------
 # OTHER
 
 def store(cords: list, stored: str, cur: str, lim: bool, st: list) -> tuple:
@@ -287,40 +338,6 @@ def do_nothing(cords: list, st: list) -> tuple:
     return cords, st
 
 
-def menu(st: list, menu_type: str, is_new: bool) -> None:
-    global left_screen, right_screen, speed_incr, difficulty, score
-    if is_new:
-        draw_menu(st, menu_type)
-    if name == 'nt':
-        key: int = ord(getch())
-    else:
-        key: int = getch()
-    if menu_type == "pause" and key == ord("p"):
-        return
-    elif key == ord("r"):
-        score = 0
-        main()
-        return
-    elif key == ord("q"):
-        quit(0)
-    elif menu_type == "start":
-        if key == ord("1"):
-            difficulty = 1
-            speed_incr = 75
-        elif key == ord("2"):
-            difficulty = 2
-            speed_incr = 100
-        elif key == ord("3"):
-            difficulty = 3
-            speed_incr = 125
-        else:
-            menu(st, menu_type, is_new=False)
-        main()
-        return
-    else:
-        menu(st, menu_type, is_new=False)
-
-
 def next_block() -> str:
     global upcoming
     new_block = upcoming.pop(0)
@@ -334,6 +351,60 @@ def next_block() -> str:
             right_screen[3 + i * 5 + j[0]][(j[1] * 2) - 1] = f"{piece_colors[k]}@\033[0m"
             right_screen[3 + i * 5 + j[0]][j[1] * 2] = f"{piece_colors[k]}@\033[0m"
     return new_block
+
+
+def set_default_values(diff=None, spd_inc=None) -> None:
+    global speed_incr, difficulty, score, stored, upcoming, left_screen, right_screen
+    speed_incr = spd_inc
+    difficulty = diff
+    score = 0
+    stored = ""
+    upcoming = [generate() for _ in range(4)]
+    left_screen = [[*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"       SCORE:       "],
+                    [*"          0         "],
+                    [*"                    "],
+                    [*f"{x_border*20}"],
+                    [*"                    "],
+                    [*"      STORED:       "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*f"{x_border*20}"],
+                    [*"     CONTROLS:      "],
+                    [*" -Up arrow: Rotate  "],
+                    [*" -Left/Right arrow: "],
+                    [*"  Move Left/Right   "],
+                    [*" -Down arrow: Drop  "],
+                    [*" -C: Store          "],
+                    [*" -Space: Quick Drop "],
+                    [*" -P: Pause          "], ]
+    right_screen = [[*"                    "],
+                    [*"                    "],
+                    [*"     UPCOMING:      "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*f"{x_border*20}"],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*f"{x_border*20}"],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*f"{x_border*20}"],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],
+                    [*"                    "],]
 
 
 # -----------------------------------------------------
@@ -412,68 +483,24 @@ rot_tbl: dict = {
 # -----------------------------------------------------
 # GAME DATA
 
-upcoming: list = [generate() for _ in range(4)]
-
-difficulty: int = 2
-speed_incr: int = 100
-score: int = 0  # Max score without bugs: 99_999_999_999_999
-
-left_screen: list = [[*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"       SCORE:       "],
-                                [*"          0         "],
-                                [*"                    "],
-                                [*"~~~~~~~~~~~~~~~~~~~~"],
-                                [*"                    "],
-                                [*"      STORED:       "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"                    "],
-                                [*"~~~~~~~~~~~~~~~~~~~~"],
-                                [*"     CONTROLS:      "],
-                                [*" -Up arrow: Rotate  "],
-                                [*" -Left/Right arrow: "],
-                                [*"  Move Left/Right   "],
-                                [*" -Down arrow: Drop  "],
-                                [*" -C: Store          "],
-                                [*" -Space: Quick Drop "],
-                                [*" -P: Pause          "], ]
-right_screen: list = [[*"                    "],
-                                 [*"                    "],
-                                 [*"     UPCOMING:      "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"~~~~~~~~~~~~~~~~~~~~"],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"~~~~~~~~~~~~~~~~~~~~"],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"~~~~~~~~~~~~~~~~~~~~"],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "],
-                                 [*"                    "], ]
-
+upcoming: list
+difficulty: int
+speed_incr: int
+score: int  # Max score without bugs: 99_999_999_999_999
+stored: str
+left_screen: list
+right_screen: list
+x_border: str = "~"
+y_border: str = "||"
 
 # -----------------------------------------------------
 # DRIVER CODE
 
 def main():
-    global score, right_screen, left_screen, upcoming
+    global score, right_screen, left_screen, upcoming, stored
     combo: int = 0
     difficult: bool = False
-    state: list = [[" " for _ in range(10)] for _ in range(22)]
-    stored: str = ""
+    state: list = [[" " for j in range(10)] for i in range(22)]
     while True:
         sscore = str(score)
         score_len = len(sscore)
@@ -482,7 +509,7 @@ def main():
         left_screen[4] = [*f'{" " * left_offset}{sscore}{" " * right_offset}']
         c_piece: str = next_block()
         c_cords: list = default_cords[c_piece]
-        for i in state[1][3:6]:
+        for i in state[2][3:6]:
             if "&" in i:
                 menu(state, "over", is_new=True)
                 break
@@ -493,6 +520,7 @@ def main():
         while True:
             x_cor: list = [i[1] for i in c_cords]
             clock += speed_incr
+            sleep(0.01)
             if kbhit():  # check if there is keyboard input
                 if name == 'nt':
                     keycode: int = ord(getch())  # get keyboard input
@@ -528,8 +556,12 @@ def main():
                     state = set_down(c_cords, c_piece, state)
                     state, score, combo, difficult = line_clear(state, score, combo, difficult)
                     break
+                elif keycode == ord("q"):
+                    exit(0)
+                elif keycode == ord("r"):
+                    set_default_values(difficulty, speed_incr)
+                    main()
             else:
-                sleep(0.01)
                 if clock >= 10000:
                     if not collision_down(c_cords, state):
                         clock = 0
