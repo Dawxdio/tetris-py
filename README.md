@@ -11,11 +11,11 @@ This project contains zero AI-written code and minimal amounts of code from foru
    * Uses Python print() statements
    * Because of this, contains significant screen flicker
    * Works natively on Windows and Linux
-2. tetris_curses.py:
-   * Uses the 'Curses' module, made for text-mode display handling
-   * Has no screen flicker
-   * Works natively on Linux
-   * Requires launch using Docker on Windows
+2. ~~tetris_curses.py:~~ WORK IN PROGRESS
+   * ~~Uses the 'Curses' module, made for text-mode display handling~~
+   * ~~Has no screen flicker~~
+   * ~~Works natively on Linux~~
+   * ~~Requires launch using Docker on Windows~~  
 
 ## How to run tetris_normal.py
 ### Linux:
@@ -58,41 +58,41 @@ This project contains zero AI-written code and minimal amounts of code from foru
       ```
 
 
-## How to run tetris_curses.py:
-### Linux:
-1. Download tetris_curses.py.
-2. Open a command line interface.
-3. Run the following commands in the command line:
+## ~~How to run tetris_curses.py:~~ WORK IN PROGRESS
+### ~~Linux:~~
+1. ~~Download tetris_curses.py.~~
+2. ~~Open a command line interface.~~
+3. ~~Run the following commands in the command line:~~
    
-   a) Check that you have Python installed.
+   a) ~~Check that you have Python installed.~~
 
       ```
       python3 --version
       ```
-   b) If Python is not found, follow this installation guide:
+   b) ~~If Python is not found, follow this installation guide:~~
    
-   * https://www.geeksforgeeks.org/how-to-install-python-on-linux/
+   * ~~https://www.geeksforgeeks.org/how-to-install-python-on-linux/~~
    
-   c) Run the downloaded file.
+   c) ~~Run the downloaded file.~~
 
       ```
       python3 /home/${USER}/Downloads/tetris.py
       ```
-### Windows:
-1. Download tetris_curses.py, Dockerfile and docker-compose.yml.
-2. Open a command line interface.
-3. Run the following commands in the command line:
+### ~~Windows:~~
+1. ~~Download tetris_curses.py, Dockerfile and docker-compose.yml.~~
+2. ~~Open a command line interface.~~
+3. ~~Run the following commands in the command line:~~
    
-   a) Check that you have Docker installed.
+   a) ~~Check that you have Docker installed.~~
 
       ```
       docker --version
       ```
-   b) If Docker is not found, follow this installation guide:
+   b) ~~If Docker is not found, follow this installation guide:~~
    
-   * https://docs.docker.com/desktop/setup/install/windows-install/
+   * ~~https://docs.docker.com/desktop/setup/install/windows-install/~~
    
-   c) Run the downloaded file.
+   c) ~~Run the downloaded file.~~
 
       ```
       ???

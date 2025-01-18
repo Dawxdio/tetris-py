@@ -3,6 +3,37 @@ from time import sleep
 from random import choice
 import curses as cs
 
+if name == 'nt':  # Windows
+    from msvcrt import getch
+else:  # Linux, source: https://gist.github.com/michelbl/efda48b19d3e587685e3441a74457024
+    from sys import stdin
+    from termios import tcgetattr, tcsetattr, ICANON, ECHO, TCSAFLUSH
+    from tty import setcbreak
+
+
+    def getch():
+        old_settings = tcgetattr(stdin)
+        new_settings = old_settings
+        new_settings[3] = (new_settings[3] & ~ICANON & ~ECHO)  # Turn off key echoing
+        tcsetattr(stdin.fileno(), TCSAFLUSH, new_settings)  
+        setcbreak(stdin.fileno())
+        try:
+            c = stdin.read(1)
+            if c == '\x1b':
+                c2 = stdin.read(2)
+                if c2 == "[A":  # Up arrow
+                    return 72
+                elif c2 == "[B":  # Down arrow
+                    return 80
+                elif c2 == "[C":  # Right arrow
+                    return 77
+                elif c2 == "[D":  # Left arrow
+                    return 75
+            else:
+                return ord(c)
+        finally:
+            tcsetattr(stdin.fileno(), TCSAFLUSH, old_settings)
+
 
 # -----------------------------------------------------
 # CHECKS
@@ -27,7 +58,6 @@ def collision_side(val: int, cords: list, st: list) -> bool:
 
 def draw(st: list) -> None:  # st == middle screen
     global right_screen, left_screen, speed_incr
-    clear()
     print(y_border, end="")
     print(x_border * 20, end=y_border)
     print(x_border * 20, end=y_border)
@@ -46,23 +76,30 @@ def draw(st: list) -> None:  # st == middle screen
     print(x_border * 20, end=f"{y_border}\n")
 
 
-def refresh(cords: list, func: tuple, cur: str, st: list) -> tuple:
+def update(cords: list, func: tuple, cur: str, st: list, mainscr) -> tuple:
     preview = "\033[38;5;244m\033[48;5;244m"
-
     for k in cords:
+        mainscr.addstr(k[0], k[1]*2, " ")
+        mainscr.addstr(k[0], k[1]*2+1, " ")
         st[k[0]][k[1]] = " "  # clear previous cords
     cords, st = func
     preview_cords, st = drop(cords, st, False)
     for k in preview_cords:
+        mainscr.addstr(k[0], k[1]*2, f"{preview}$\033[0m")
+        mainscr.addstr(k[0], k[1]*2+1, f"{preview}$\033[0m")
         st[k[0]][k[1]] = f"{preview}$\033[0m"  # draw preview
     for k in cords:
+        mainscr.addstr(k[0], k[1]*2, f"{piece_colors[cur]}@\033[0m")
+        mainscr.addstr(k[0], k[1]*2+1, f"{piece_colors[cur]}@\033[0m")
         st[k[0]][k[1]] = f"{piece_colors[cur]}@\033[0m"  # draw new piece
-    draw(st)
-
     if preview_cords != cords:
         for k in preview_cords:
+            mainscr.addstr(k[0], k[1]*2, " ")
+            mainscr.addstr(k[0], k[1]*2+1, " ")
             st[k[0]][k[1]] = " "
+    mainscr.refresh()
     return cords, st
+
 
 
 def line_clear(st: list, sco: int, com: int, dif: bool) -> tuple:
@@ -190,11 +227,14 @@ def menu(st: list, mainscr, menu_type: str, is_new: bool) -> None:
         if menu_type == "start":
             set_default_values()
         draw_menu(st, menu_type)
-    key: int = mainscr.getch()
+    if name == 'nt':
+        key: int = ord(getch())
+    else:
+        key: int = getch()
     if menu_type == "pause" and key == ord("p"):
         return
     elif key == ord("r"):
-        menu([[" " for j in range(10)] for i in range(22)], "start", True)
+        menu([[" " for _ in range(10)] for _ in range(22)], "start", True)
         return
     elif key == ord("q"):
         quit(0)
@@ -213,7 +253,7 @@ def menu(st: list, mainscr, menu_type: str, is_new: bool) -> None:
         else:
             menu(st, menu_type, is_new=False)
         set_default_values(diff, spd_inc)
-        main()
+        main(mainscr)
         return
     else:
         menu(st, menu_type, is_new=False)
@@ -221,7 +261,7 @@ def menu(st: list, mainscr, menu_type: str, is_new: bool) -> None:
 
 def draw_menu(st: list, menu_type: str) -> None:
     global left_screen, right_screen, menu_content
-    clear()
+    cs.clear()
     print(y_border, end="")
     [print(x_border * 20, end=y_border) for _ in range(3)]
     print()
@@ -284,7 +324,7 @@ def generate() -> str:
     return choice(list(default_cords.keys()))
 
 
-def set_down(cords: list, cur: str, st: list) -> list:
+def set_down(cords: list, cur: str, st: list, mainscr) -> list:
     for k in cords:
         st[k[0]][k[1]] = f"{piece_colors[cur]}&\033[0m"
     return st
@@ -316,7 +356,7 @@ def set_default_values(diff=None, spd_inc=None) -> None:
     score = 0
     stored = ""
     upcoming = [generate() for _ in range(4)]
-    left_screen = [[*"                    "],
+    left_screen_cont = [[*"                    "],
                     [*"                    "],
                     [*"                    "],
                     [*"       SCORE:       "],
@@ -338,7 +378,10 @@ def set_default_values(diff=None, spd_inc=None) -> None:
                     [*" -C: Store          "],
                     [*" -Space: Quick Drop "],
                     [*" -P: Pause          "], ]
-    right_screen = [[*"                    "],
+    for y, i  in enumerate(left_screen_cont):
+        for x, j in i:
+            left_screen.addstr(y,x,j)
+    right_screen_cont = [[*"                    "],
                     [*"                    "],
                     [*"     UPCOMING:      "],
                     [*"                    "],
@@ -361,6 +404,9 @@ def set_default_values(diff=None, spd_inc=None) -> None:
                     [*"                    "],
                     [*"                    "],
                     [*"                    "],]
+    for y, i  in enumerate(right_screen_cont):
+        for x, j in i:
+            right_screen.addstr(y,x,j)
 
 
 # -----------------------------------------------------
@@ -444,8 +490,8 @@ difficulty: int
 speed_incr: int
 score: int  # Max score without bugs: 99_999_999_999_999
 stored: str
-left_screen: list
-right_screen: list
+left_screen = cs.newwin(22,20,0,0)
+right_screen = cs.newwin(22,20,0,40)
 x_border: str = "~"
 y_border: str = "||"
 
@@ -454,9 +500,13 @@ y_border: str = "||"
 
 def main(mainscr):
     global score, right_screen, left_screen, upcoming, stored
+    cs.curs_set(0)
+    mainscr = cs.newwin(22,20,0,20)
+    mainscr.border("|","|","~","~")
+    mainscr.nodelay(True)
     combo: int = 0
     difficult: bool = False
-    state: list = [[" " for j in range(10)] for i in range(22)]
+    state: list = [[" " for _ in range(10)] for _ in range(22)]
     while True:
         sscore = str(score)
         score_len = len(sscore)
@@ -472,57 +522,58 @@ def main(mainscr):
         clock: int = 0
         rot_state: int = 0
         store_lim: bool = False
-        c_cords, state = refresh(c_cords, do_nothing(c_cords, state), c_piece, state)
+        c_cords, state = update(c_cords, do_nothing(c_cords, state), c_piece, state, mainscr)
         while True:
             x_cor: list = [i[1] for i in c_cords]
             clock += speed_incr
             sleep(0.01)
-            if kbhit():  # check if there is keyboard input
-                keycode: int = mainscr.getch()
-                if keycode == 72 and c_piece != "O":  # Up arrow
-                    rotation_success = (c_cords, state != rotate(c_cords, c_piece, rot_state, state))
-                    if rotation_success:
-                        c_cords, state = refresh(c_cords, rotate(c_cords, c_piece, rot_state, state), c_piece, state)
-                        rot_state = (rot_state + 1) % 4
-                elif keycode == 75:  # Left arrow
-                    if 0 not in x_cor:  # check if coordinate after move would be out of range
-                        c_cords, state = refresh(c_cords, move_side(-1, c_cords, state), c_piece, state)
-                elif keycode == 77:  # Right arrow
-                    if 9 not in x_cor:
-                        c_cords, state = refresh(c_cords, move_side(1, c_cords, state), c_piece, state)
-                elif keycode == 80:  # Down arrow
-                    if not collision_down(c_cords, state):
-                        c_cords, state = refresh(c_cords, move_down(c_cords, state, True), c_piece, state)
-                    else:
-                        state = set_down(c_cords, c_piece, state)
-                        state, score, combo, difficult = line_clear(state, score, combo, difficult)
-                        break
-                elif keycode == ord("c"):
-                    c_cords, stored, c_piece, store_lim, state = store(c_cords, stored, c_piece, store_lim, state)
-                    rot_state = 0
-                    refresh(c_cords, do_nothing(c_cords, state), c_piece, state)
-                elif keycode == ord("p"):
-                    menu(state, "pause", is_new=True)
-                    c_cords, state = refresh(c_cords, do_nothing(c_cords, state), c_piece, state)
-                elif keycode == ord(" "):
-                    c_cords, state = refresh(c_cords, drop(c_cords, state, True), c_piece, state)
-                    state = set_down(c_cords, c_piece, state)
+            if name == 'nt':
+                keycode: int = ord(getch())
+            else:
+                keycode: int = getch()
+            if keycode == 72 and c_piece != "O":  # Up arrow
+                rotation_success = (c_cords, state != rotate(c_cords, c_piece, rot_state, state))
+                if rotation_success:
+                    c_cords, state = update(c_cords, rotate(c_cords, c_piece, rot_state, state), c_piece, state, mainscr)
+                    rot_state = (rot_state + 1) % 4
+            elif keycode == 75:  # Left arrow
+                if 0 not in x_cor:  # check if coordinate after move would be out of range
+                    c_cords, state = update(c_cords, move_side(-1, c_cords, state), c_piece, state, mainscr)
+            elif keycode == 77:  # Right arrow
+                if 9 not in x_cor:
+                    c_cords, state = update(c_cords, move_side(1, c_cords, state), c_piece, state, mainscr)
+            elif keycode == 80:  # Down arrow
+                if not collision_down(c_cords, state):
+                    c_cords, state = update(c_cords, move_down(c_cords, state, True), c_piece, state, mainscr)
+                else:
+                    state = set_down(c_cords, c_piece, state, mainscr)
                     state, score, combo, difficult = line_clear(state, score, combo, difficult)
                     break
-                elif keycode == ord("q"):
-                    exit(0)
-                elif keycode == ord("r"):
-                    set_default_values(difficulty, speed_incr)
-                    main()
-            else:
-                if clock >= 10000:
-                    if not collision_down(c_cords, state):
-                        clock = 0
-                        c_cords, state = refresh(c_cords, move_down(c_cords, state, False), c_piece, state)
-                    else:
-                        state = set_down(c_cords, c_piece, state)
-                        state, score, combo, difficult = line_clear(state, score, combo, difficult)
-                        break
+            elif keycode == ord("c"):
+                c_cords, stored, c_piece, store_lim, state = store(c_cords, stored, c_piece, store_lim, state)
+                rot_state = 0
+                update(c_cords, do_nothing(c_cords, state), c_piece, state, mainscr)
+            elif keycode == ord("p"):
+                menu(state, "pause", is_new=True)
+                c_cords, state = update(c_cords, do_nothing(c_cords, state), c_piece, state, mainscr)
+            elif keycode == ord(" "):
+                c_cords, state = update(c_cords, drop(c_cords, state, True), c_piece, state, mainscr)
+                state = set_down(c_cords, c_piece, state, mainscr)
+                state, score, combo, difficult = line_clear(state, score, combo, difficult)
+                break
+            elif keycode == ord("q"):
+                exit(0)
+            elif keycode == ord("r"):
+                set_default_values(difficulty, speed_incr)
+                main(mainscr)
+            if clock >= 10000:
+                if not collision_down(c_cords, state):
+                    clock = 0
+                    c_cords, state = update(c_cords, move_down(c_cords, state, False), c_piece, state, mainscr)
+                else:
+                    state = set_down(c_cords, c_piece, state, mainscr)
+                    state, score, combo, difficult = line_clear(state, score, combo, difficult)
+                    break
 
 
 if __name__ == "__main__":

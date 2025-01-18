@@ -4,7 +4,7 @@ from random import choice
 
 if name == 'nt':  # Windows
     from msvcrt import getch, kbhit
-else:  # Linux
+else:  # Linux, source: https://gist.github.com/michelbl/efda48b19d3e587685e3441a74457024
     from sys import stdin
     from termios import tcgetattr, tcsetattr, ICANON, ECHO, TCSAFLUSH
     from tty import setcbreak
