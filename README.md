@@ -11,7 +11,7 @@ This project contains zero AI-written code and minimal amounts of code from foru
    * Uses Python print() statements
    * Because of this, contains significant screen flicker
    * Works natively on Windows and Linux
-2. ~~tetris_curses.py:~~ WORK IN PROGRESS
+2. ~~tetris_curses.py:~~  Scrapped, for the sake of my mental health
    * ~~Uses the 'Curses' module, made for text-mode display handling~~
    * ~~Has no screen flicker~~
    * ~~Works natively on Linux~~
@@ -19,7 +19,7 @@ This project contains zero AI-written code and minimal amounts of code from foru
 
 ## How to run tetris_normal.py
 ### Linux:
-1. Download tetris_curses.py.
+1. Download tetris_normal.py.
 2. Open a command line interface.
 3. Run the following commands in the command line:
    
@@ -35,7 +35,7 @@ This project contains zero AI-written code and minimal amounts of code from foru
    c) Run the downloaded file.
 
       ```
-      python3 /home/${USER}/Downloads/tetris.py
+      python3 /home/${USER}/Downloads/tetris_normal.py
       ```
 ### Windows:
 1. Download tetris_normal.py.
@@ -58,7 +58,7 @@ This project contains zero AI-written code and minimal amounts of code from foru
       ```
 
 
-## ~~How to run tetris_curses.py:~~ WORK IN PROGRESS
+## ~~How to run tetris_curses.py:~~  Scrapped, for the sake of my mental health
 ### ~~Linux:~~
 1. ~~Download tetris_curses.py.~~
 2. ~~Open a command line interface.~~
