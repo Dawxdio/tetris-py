@@ -221,10 +221,23 @@ menu_content: dict = {
 }
 
 
-def menu(st: list, mainscr, menu_type: str, is_new: bool) -> None:
-    global left_screen, right_screen, score, upcoming
+def init(mainscr):
+    menu([[" " for _ in range(10)] for _ in range(22)], "start", True, mainscr)
+
+def menu(st: list, menu_type: str, is_new: bool, mainscr) -> None:
+    global score, upcoming
     if is_new:
         if menu_type == "start":
+            cs.curs_set(0)
+            left_screen = cs.newwin(22,20,0,0)
+            mainscr = cs.newwin(22,20,0,20)
+            right_screen = cs.newwin(22,20,0,40)
+            left_screen.border("|","|","~","~")
+            mainscr.border("|","|","~","~")
+            right_screen.border("|","|","~","~")
+            left_screen.nodelay(True)
+            mainscr.nodelay(True)
+            right_screen.nodelay(True)
             set_default_values()
         draw_menu(st, menu_type)
     if name == 'nt':
@@ -234,7 +247,7 @@ def menu(st: list, mainscr, menu_type: str, is_new: bool) -> None:
     if menu_type == "pause" and key == ord("p"):
         return
     elif key == ord("r"):
-        menu([[" " for _ in range(10)] for _ in range(22)], "start", True)
+        menu([[" " for _ in range(10)] for _ in range(22)], "start", True, mainscr)
         return
     elif key == ord("q"):
         quit(0)
@@ -251,12 +264,12 @@ def menu(st: list, mainscr, menu_type: str, is_new: bool) -> None:
             diff = 3
             spd_inc = 125
         else:
-            menu(st, menu_type, is_new=False)
+            menu(st, menu_type, False)
         set_default_values(diff, spd_inc)
         main(mainscr)
         return
     else:
-        menu(st, menu_type, is_new=False)
+        menu(st, menu_type, False)
 
 
 def draw_menu(st: list, menu_type: str) -> None:
@@ -490,8 +503,6 @@ difficulty: int
 speed_incr: int
 score: int  # Max score without bugs: 99_999_999_999_999
 stored: str
-left_screen = cs.newwin(22,20,0,0)
-right_screen = cs.newwin(22,20,0,40)
 x_border: str = "~"
 y_border: str = "||"
 
@@ -500,10 +511,6 @@ y_border: str = "||"
 
 def main(mainscr):
     global score, right_screen, left_screen, upcoming, stored
-    cs.curs_set(0)
-    mainscr = cs.newwin(22,20,0,20)
-    mainscr.border("|","|","~","~")
-    mainscr.nodelay(True)
     combo: int = 0
     difficult: bool = False
     state: list = [[" " for _ in range(10)] for _ in range(22)]
@@ -577,4 +584,4 @@ def main(mainscr):
 
 
 if __name__ == "__main__":
-    cs.wrapper(menu([[" " for _ in range(10)] for _ in range(22)], "start", True))
+    cs.wrapper(init)

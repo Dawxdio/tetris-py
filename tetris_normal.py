@@ -1,4 +1,4 @@
-from os import name, system
+from os import name, system, path
 from time import sleep
 from random import choice
 
@@ -226,7 +226,7 @@ menu_content: dict = {
 
 
 def menu(st: list, menu_type: str, is_new: bool) -> None:
-    global left_screen, right_screen, score, upcoming
+    global left_screen, right_screen, upcoming
     if is_new:
         if menu_type == "start":
             set_default_values()
@@ -238,9 +238,11 @@ def menu(st: list, menu_type: str, is_new: bool) -> None:
     if menu_type == "pause" and key == ord("p"):
         return
     elif key == ord("r"):
-        menu([[" " for j in range(10)] for i in range(22)], "start", True)
+        save_highscore()
+        menu([[" " for _ in range(10)] for _ in range(22)], "start", True)
         return
     elif key == ord("q"):
+        save_highscore()
         quit(0)
     elif menu_type == "start":
         diff: int
@@ -354,18 +356,28 @@ def next_block() -> str:
 
 
 def set_default_values(diff=None, spd_inc=None) -> None:
-    global speed_incr, difficulty, score, stored, upcoming, left_screen, right_screen
+    global speed_incr, difficulty, score, highscore, stored, upcoming, left_screen, right_screen
     speed_incr = spd_inc
     difficulty = diff
     score = 0
+    highscore = 0
+    if not path.isfile("highscore.txt"):
+        with open("highscore.txt", "w") as file:
+            file.write("0")
+    with open("highscore.txt", "r") as file:
+        for line in file:
+            highscore = int(line)
     stored = ""
     upcoming = [generate() for _ in range(4)]
+    highscore_len = len(str(highscore))
+    left_offset = 10 - (highscore_len > 2) * (highscore_len // 2)
+    right_offset = 20 - (left_offset + highscore_len)
     left_screen = [[*"                    "],
-                    [*"                    "],
                     [*"                    "],
                     [*"       SCORE:       "],
                     [*"          0         "],
-                    [*"                    "],
+                    [*"    HIGH SCORE:     "],
+                    [*f'{" " * left_offset}{highscore}{" " * right_offset}'],
                     [*f"{x_border*20}"],
                     [*"                    "],
                     [*"      STORED:       "],
@@ -406,6 +418,17 @@ def set_default_values(diff=None, spd_inc=None) -> None:
                     [*"                    "],
                     [*"                    "],]
 
+
+def save_highscore() -> None:
+    global highscore
+    iswrite = False
+    with open("highscore.txt", "r") as file:
+        for line in file:
+            if int(line)<highscore:
+                iswrite = True
+    if iswrite:
+        with open("highscore.txt", "w") as file:
+            file.write(str(highscore))
 
 # -----------------------------------------------------
 # BLOCK DATA
@@ -487,6 +510,7 @@ upcoming: list
 difficulty: int
 speed_incr: int
 score: int  # Max score without bugs: 99_999_999_999_999
+highscore: int
 stored: str
 left_screen: list
 right_screen: list
@@ -497,20 +521,26 @@ y_border: str = "||"
 # DRIVER CODE
 
 def main():
-    global score, right_screen, left_screen, upcoming, stored
+    global score, highscore, right_screen, left_screen, upcoming, stored
     combo: int = 0
     difficult: bool = False
-    state: list = [[" " for j in range(10)] for i in range(22)]
+    state: list = [[" " for _ in range(10)] for _ in range(22)]
     while True:
-        sscore = str(score)
-        score_len = len(sscore)
+        score_len = len(str(score))
         left_offset = 10 - (score_len > 2) * (score_len // 2)
         right_offset = 20 - (left_offset + score_len)
-        left_screen[4] = [*f'{" " * left_offset}{sscore}{" " * right_offset}']
+        left_screen[3] = [*f'{" " * left_offset}{score}{" " * right_offset}']
+        if highscore <= score:
+            highscore = score
+            highscore_len = len(str(highscore))
+            left_offset = 10 - (highscore_len > 2) * (highscore_len // 2)
+            right_offset = 20 - (left_offset + highscore_len)
+            left_screen[5] = [*f'{" " * left_offset}{highscore}{" " * right_offset}']
         c_piece: str = next_block()
         c_cords: list = default_cords[c_piece]
         for i in state[2][3:6]:
             if "&" in i:
+                save_highscore()
                 menu(state, "over", is_new=True)
                 break
         clock: int = 0
@@ -557,8 +587,10 @@ def main():
                     state, score, combo, difficult = line_clear(state, score, combo, difficult)
                     break
                 elif keycode == ord("q"):
+                    save_highscore()
                     exit(0)
                 elif keycode == ord("r"):
+                    save_highscore()
                     set_default_values(difficulty, speed_incr)
                     main()
             else:
