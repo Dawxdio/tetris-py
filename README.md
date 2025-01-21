@@ -11,32 +11,14 @@ This project contains zero AI-written code and minimal amounts of code from foru
    * Uses Python print() statements
    * Because of this, contains significant screen flicker
    * Works natively on Windows and Linux
-2. ~~tetris_curses.py:~~  Scrapped, for the sake of my mental health
+2. ~~tetris_curses.py:~~  Scrapped.
    * ~~Uses the 'Curses' module, made for text-mode display handling~~
    * ~~Has no screen flicker~~
    * ~~Works natively on Linux~~
    * ~~Requires launch using Docker on Windows~~  
 
 ## How to run tetris_normal.py
-### Linux:
-1. Download tetris_normal.py.
-2. Open a command line interface.
-3. Run the following commands in the command line:
-   
-   a) Check that you have Python installed.
 
-      ```
-      python3 --version
-      ```
-   b) If Python is not found, follow this installation guide:
-   
-   * https://www.geeksforgeeks.org/how-to-install-python-on-linux/
-   
-   c) Run the downloaded file.
-
-      ```
-      python3 /home/${USER}/Downloads/tetris_normal.py
-      ```
 ### Windows:
 1. Download tetris_normal.py.
 2. Open a command line interface.
@@ -57,43 +39,23 @@ This project contains zero AI-written code and minimal amounts of code from foru
       python C:\Users\%USERNAME%\Downloads\tetris_normal.py
       ```
 
-
-## ~~How to run tetris_curses.py:~~  Scrapped, for the sake of my mental health
-### ~~Linux:~~
-1. ~~Download tetris_curses.py.~~
-2. ~~Open a command line interface.~~
-3. ~~Run the following commands in the command line:~~
+### Linux:
+1. Download tetris_normal.py.
+2. Open a command line interface.
+3. Run the following commands in the command line:
    
-   a) ~~Check that you have Python installed.~~
+   a) Check that you have Python installed.
 
       ```
       python3 --version
       ```
-   b) ~~If Python is not found, follow this installation guide:~~
+   b) If Python is not found, follow this installation guide:
    
-   * ~~https://www.geeksforgeeks.org/how-to-install-python-on-linux/~~
+   * https://www.geeksforgeeks.org/how-to-install-python-on-linux/
    
-   c) ~~Run the downloaded file.~~
+   c) Run the downloaded file.
 
       ```
-      python3 /home/${USER}/Downloads/tetris.py
+      python3 /home/${USER}/Downloads/tetris_normal.py
       ```
-### ~~Windows:~~
-1. ~~Download tetris_curses.py, Dockerfile and docker-compose.yml.~~
-2. ~~Open a command line interface.~~
-3. ~~Run the following commands in the command line:~~
-   
-   a) ~~Check that you have Docker installed.~~
 
-      ```
-      docker --version
-      ```
-   b) ~~If Docker is not found, follow this installation guide:~~
-   
-   * ~~https://docs.docker.com/desktop/setup/install/windows-install/~~
-   
-   c) ~~Run the downloaded file.~~
-
-      ```
-      ???
-      ```
